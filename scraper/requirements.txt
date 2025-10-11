@@ -1,0 +1,48 @@
+# Python dependencies for Price Tracker Web Scraper
+# Thư viện cần thiết cho module thu thập dữ liệu
+
+# Web scraping libraries
+requests>=2.31.0          # HTTP requests library
+beautifulsoup4>=4.12.0    # HTML parsing cho web tĩnh
+selenium>=4.15.0          # Web automation cho web động
+lxml>=4.9.0              # XML/HTML parser (faster than html.parser)
+
+# Database connectivity
+mysql-connector-python>=8.2.0  # MySQL database connector
+pymongo>=4.6.0                  # MongoDB connector (nếu sử dụng NoSQL)
+
+# Data processing
+pandas>=2.1.0            # Data manipulation và analysis
+numpy>=1.24.0           # Numerical computing
+
+# Scheduling and automation
+schedule>=1.2.0         # Job scheduling cho cào dữ liệu định kỳ
+APScheduler>=3.10.0     # Advanced scheduler
+
+# Configuration management
+python-decouple>=3.8    # Environment variables management
+pyyaml>=6.0            # YAML config files support
+
+# Logging and monitoring
+loguru>=0.7.0          # Enhanced logging
+
+# HTTP and networking
+urllib3>=2.0.0         # Advanced HTTP client
+fake-useragent>=1.4.0  # Random user agents để tránh bị block
+
+# Image processing (nếu cần xử lý ảnh sản phẩm)
+Pillow>=10.0.0         # Image processing
+
+# Web driver management (cho Selenium)
+webdriver-manager>=4.0.0  # Automatic web driver management
+
+# Data validation
+cerberus>=1.3.0        # Data validation
+
+# Export/Import data
+openpyxl>=3.1.0        # Excel files support
+xlsxwriter>=3.1.0      # Excel writing
+
+# Development and testing
+pytest>=7.4.0         # Testing framework
+pytest-cov>=4.1.0     # Coverage reports
