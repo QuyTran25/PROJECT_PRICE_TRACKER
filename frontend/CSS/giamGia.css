@@ -1,0 +1,222 @@
+.banner-svg {
+    width: 100%; 
+    height: auto; 
+}
+#content #nut {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: #CC0843 1px solid;
+}
+#nut .chucnang {
+    width: 140px;
+    background-color: #FDF2F8;
+    border-radius: 10px;
+    text-align: center;
+    padding: 10px 0;
+    border: #E5E7EB 1px solid;
+    cursor: pointer;
+    font-family: 'roboto', sans-serif;
+    font-weight:400;
+    font-size: 16px;
+    text-decoration: none; /* Xóa gạch chân của link */
+    color: inherit; /* Giữ màu chữ mặc định */
+    display: inline-block; /* Để width hoạt động */
+}
+
+#nut .chucnang:hover {
+    background-color: #EC4899;
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+#nut .chucnang:active {
+    background-color: #EC4899;
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+#content .frame_sanpham {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 50px 100px 0 100px;
+    box-sizing: border-box;
+}
+.frame_sanpham .ten_deal {
+    color: #EC4899;
+    font-family: 'roboto', sans-serif;
+    font-size: 32px;
+    font-weight: bolder;
+    margin-bottom: 50px;
+}
+.sanpham .mathang {
+    padding: 0 0 10px 0;
+    border: #E5E7EB 1px solid;
+    border-radius: 8px;
+    margin-bottom: 50px;
+}
+.sanpham .hang {
+    display : flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 10px;
+}
+.hinh {
+    position: relative;
+}
+.hinh img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+.thong_tin {
+    padding : 10px;
+}
+
+.nhom_sp {
+    background-color: #F3F4F6;
+    color: #4B5563;
+    font-size: 10.2px;
+    padding: 5px 0 5px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-family: 'roboto', sans-serif;
+}
+.ten_sp {
+    font-family: 'inter', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    margin: 10px 0;
+}
+.gia_sp span {
+    font-family: 'inter', sans-serif;
+    font-size: 21px;
+    font-weight: bolder;
+    color: #EC4899;
+    margin-bottom: 10px;
+}
+
+.gia_sp {
+    font-family: 'inter', sans-serif;
+    color: #EC4899;
+    margin-bottom: 10px;
+}
+
+.tiet_kiem {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.tiet_kiem .gia_goc {
+    color: #6B7280;
+    font-size: 11px;
+}
+.tiet_kiem .khau_tru {
+    color: #16A34A;
+    font-size: 12px;
+}
+.chi_tiet {
+    width: 100%;
+    border-radius: 9px;
+    color: white;
+    background-color: #EC4899;
+    height: 30px;
+}
+
+.xem_them {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 50px 0;
+    color: #CC0843;
+    font-family: 'roboto', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.xem_them:hover {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+#end-page {
+    width: 100%;
+    height: 200px;
+    background-color: #FDF2F8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-top: #CC0843 1px solid;
+    padding: 200px 0;
+}
+
+.box {
+    font-size: 20px;
+    font-family: 'roboto', sans-serif;
+    font-weight: bolder;
+    padding: 30px 30px;
+    border-radius: 15px;
+    cursor: pointer;
+}
+.box1 {
+    background-color: white;
+    border: #DB2777 1px solid;
+    color: #CC0843;
+}
+.box2 {
+    background-color: #DB2777;
+    color: white;
+}
+
+#end-page a {
+    text-decoration: none;
+}
+.tren_hinh {
+    position: absolute;
+    top: 10px; 
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0 10px;
+    z-index: 10; 
+}
+
+.tren_hinh .phan_tram {
+    color: white;
+    background-color: #EF4444;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 999px;
+}
+.nhan_deal {
+    color: white;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 999px;
+    display : flex;
+    align-items: center;
+}
+
+.tren_hinh .Trending {
+    background-color : #A855F7;
+}
+.tren_hinh .deal {
+    background-color : #DB2777;
+}
+.tren_hinh .Sale {
+    background-color : #EF4444;
+}
