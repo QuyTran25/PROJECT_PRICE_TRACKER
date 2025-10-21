@@ -3,9 +3,10 @@
     padding: 0;
     border: 0;
 }
+
 #header {
-    height: 6.25rem !important;
-    background-color: #FFE7EE;
+    height: 4.25rem !important;
+    background-color: rgba(255, 231, 238, 0.2);
     padding: 0;
     margin: 0;
     border: 0;
@@ -17,10 +18,11 @@
     width: 100%;
 }
 
-#header img{
+#header img {
     width: 21.875rem;
     height: 4.375rem;
 }
+
 #header #menu {
     width: 60%;
     display: flex;
@@ -33,7 +35,7 @@
 #header #menu a {
     text-decoration: none;
     color: black;
-    font-size: 1.375rem;
+    font-size: 1.10rem;
     font-weight: lighter;
     font-family: 'Roboto Condensed', sans-serif;
 }
