@@ -4,7 +4,8 @@
     border: 0;
 }
 #footer {
-    height: 300px;
+    height: 18.75rem;
+    width: 100%;
     background: linear-gradient(to top, #FF9DBB 0%, #FFCEDD 50%, #FFFFFF 100%);
     display: flex;
     justify-content: space-between;
@@ -14,15 +15,15 @@
 }
 
 #footer #LOGO {
-    margin-left: 50px;
+    margin-left: 3.125rem;
 }
 #footer img {
-    height: 90px;
-    margin-bottom: 20px;
+    height: 5.625rem;
+    margin-bottom: 1.25rem;
 }
 
 #footer .infor {
-    margin-left: 50px;
+    margin-left: 3.125rem;
     color: #EC4899;
     font-family: 'roboto', sans-serif;
 }
@@ -30,15 +31,15 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    font-size: 20px;
-    margin: 20px 0 0 30px;
+    font-size: 1.25rem;
+    margin: 1.25rem 0 0 1.875rem;
 }
 #footer .infor .we p {
-    margin-left: 10px;
+    margin-left: 0.625rem;
 }
 #footer .infor .icon {
     color: #CC0843;
-    margin: 30px 40px 0 0;
-    font-size: 40px;
+    margin: 1.875rem 2.5rem 0 0;
+    font-size: 2.5rem;
 
 }

@@ -4,7 +4,7 @@
     border: 0;
 }
 #header {
-    height: 100px !important;
+    height: 6.25rem !important;
     background-color: #FFE7EE;
     padding: 0;
     margin: 0;
@@ -18,8 +18,8 @@
 }
 
 #header img{
-    width: 350px;
-    height: 70px;
+    width: 21.875rem;
+    height: 4.375rem;
 }
 #header #menu {
     width: 60%;
@@ -33,7 +33,7 @@
 #header #menu a {
     text-decoration: none;
     color: black;
-    font-size: 22px;
+    font-size: 1.375rem;
     font-weight: lighter;
     font-family: 'Roboto Condensed', sans-serif;
 }
