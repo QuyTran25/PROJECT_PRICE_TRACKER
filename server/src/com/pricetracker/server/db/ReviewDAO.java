@@ -1,244 +1,92 @@
 package com.pricetracker.server.db;
 
-import com.pricetracker.models.Review;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.pricetracker.models.Review;
+
 /**
- * ReviewDAO - Data Access Object cho đánh giá sản phẩm
- * Xử lý các truy vấn liên quan đến review của khách hàng
+ * ReviewDAO - Lớp truy vấn bảng 'review'
+ * Phụ trách lấy, thêm và đếm đánh giá theo sản phẩm
  */
 public class ReviewDAO {
-    private DatabaseConnectionManager dbManager;
-    
-    public ReviewDAO() {
-        this.dbManager = DatabaseConnectionManager.getInstance();
-    }
-    
+
     /**
-     * Thêm review mới
+     * Lấy danh sách review theo product_id (mới nhất trước)
      */
-    public int insertReview(Review review) throws SQLException {
-        String sql = "INSERT INTO review (product_id, reviewer_name, rating, review_text) VALUES (?, ?, ?, ?)";
-        
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            
-            pstmt.setInt(1, review.getProductId());
-            pstmt.setString(2, review.getReviewerName());
-            pstmt.setInt(3, review.getRating());
-            pstmt.setString(4, review.getReviewText());
-            
-            int affectedRows = pstmt.executeUpdate();
-            
-            if (affectedRows > 0) {
-                try (ResultSet rs = pstmt.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        return rs.getInt(1);
-                    }
-                }
-            }
-            return -1;
-        }
-    }
-    
-    /**
-     * Lấy review theo ID
-     */
-    public Review getReviewById(int reviewId) throws SQLException {
-        String sql = "SELECT * FROM review WHERE review_id = ?";
-        
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, reviewId);
-            ResultSet rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                return extractReviewFromResultSet(rs);
-            }
-            return null;
-        }
-    }
-    
-    /**
-     * Lấy tất cả review của một sản phẩm
-     */
-    public List<Review> getReviewsByProductId(int productId) throws SQLException {
+    public List<Review> getReviewsByProductId(int productId) {
+        List<Review> list = new ArrayList<>();
         String sql = "SELECT * FROM review WHERE product_id = ? ORDER BY review_date DESC";
-        List<Review> reviews = new ArrayList<>();
-        
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, productId);
-            ResultSet rs = pstmt.executeQuery();
-            
+
+        try (Connection conn = DatabaseConnectionManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, productId);
+            ResultSet rs = stmt.executeQuery();
+
             while (rs.next()) {
-                reviews.add(extractReviewFromResultSet(rs));
+                Review r = new Review();
+                r.setReviewId(rs.getInt("review_id"));
+                r.setProductId(rs.getInt("product_id"));
+                r.setReviewerName(rs.getString("reviewer_name"));
+                r.setRating(rs.getInt("rating"));
+                r.setReviewText(rs.getString("review_text"));
+                r.setReviewDate(rs.getTimestamp("review_date"));
+                list.add(r);
             }
+
+        } catch (SQLException e) {
+            System.err.println("❌ Lỗi khi truy vấn bảng review");
+            e.printStackTrace();
         }
-        return reviews;
+
+        return list;
     }
-    
+
     /**
-     * Lấy review theo rating
+     * Thêm một review mới vào database
      */
-    public List<Review> getReviewsByRating(int productId, int rating) throws SQLException {
-        String sql = "SELECT * FROM review WHERE product_id = ? AND rating = ? ORDER BY review_date DESC";
-        List<Review> reviews = new ArrayList<>();
-        
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, productId);
-            pstmt.setInt(2, rating);
-            ResultSet rs = pstmt.executeQuery();
-            
-            while (rs.next()) {
-                reviews.add(extractReviewFromResultSet(rs));
-            }
-        }
-        return reviews;
-    }
-    
-    /**
-     * Lấy rating trung bình của sản phẩm
-     */
-    public double getAverageRating(int productId) throws SQLException {
-        String sql = "SELECT AVG(rating) as avg_rating FROM review WHERE product_id = ?";
-        
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, productId);
-            ResultSet rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                return rs.getDouble("avg_rating");
-            }
-            return 0.0;
+    public boolean addReview(Review review) {
+        String sql = "INSERT INTO review (product_id, reviewer_name, rating, review_text, review_date) " +
+                     "VALUES (?, ?, ?, ?, NOW())";
+
+        try (Connection conn = DatabaseConnectionManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, review.getProductId());
+            stmt.setString(2, review.getReviewerName());
+            stmt.setInt(3, review.getRating());
+            stmt.setString(4, review.getReviewText());
+
+            int rows = stmt.executeUpdate();
+            return rows > 0;
+
+        } catch (SQLException e) {
+            System.err.println("❌ Lỗi khi thêm review mới");
+            e.printStackTrace();
+            return false;
         }
     }
-    
+
     /**
-     * Đếm số lượng review của sản phẩm
+     * Đếm số lượng review của một sản phẩm
      */
-    public int countReviews(int productId) throws SQLException {
+    public int countReviewsByProductId(int productId) {
         String sql = "SELECT COUNT(*) FROM review WHERE product_id = ?";
-        
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, productId);
-            ResultSet rs = pstmt.executeQuery();
-            
+        try (Connection conn = DatabaseConnectionManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, productId);
+            ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 return rs.getInt(1);
             }
-            return 0;
+
+        } catch (SQLException e) {
+            System.err.println("❌ Lỗi khi đếm review");
+            e.printStackTrace();
         }
-    }
-    
-    /**
-     * Đếm số lượng review theo từng rating
-     */
-    public int countReviewsByRating(int productId, int rating) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM review WHERE product_id = ? AND rating = ?";
-        
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, productId);
-            pstmt.setInt(2, rating);
-            ResultSet rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-            return 0;
-        }
-    }
-    
-    /**
-     * Lấy N review mới nhất
-     */
-    public List<Review> getRecentReviews(int productId, int limit) throws SQLException {
-        String sql = "SELECT * FROM review WHERE product_id = ? ORDER BY review_date DESC LIMIT ?";
-        List<Review> reviews = new ArrayList<>();
-        
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, productId);
-            pstmt.setInt(2, limit);
-            ResultSet rs = pstmt.executeQuery();
-            
-            while (rs.next()) {
-                reviews.add(extractReviewFromResultSet(rs));
-            }
-        }
-        return reviews;
-    }
-    
-    /**
-     * Cập nhật review
-     */
-    public boolean updateReview(Review review) throws SQLException {
-        String sql = "UPDATE review SET reviewer_name = ?, rating = ?, review_text = ? WHERE review_id = ?";
-        
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setString(1, review.getReviewerName());
-            pstmt.setInt(2, review.getRating());
-            pstmt.setString(3, review.getReviewText());
-            pstmt.setInt(4, review.getReviewId());
-            
-            return pstmt.executeUpdate() > 0;
-        }
-    }
-    
-    /**
-     * Xóa review
-     */
-    public boolean deleteReview(int reviewId) throws SQLException {
-        String sql = "DELETE FROM review WHERE review_id = ?";
-        
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, reviewId);
-            return pstmt.executeUpdate() > 0;
-        }
-    }
-    
-    /**
-     * Xóa tất cả review của sản phẩm
-     */
-    public boolean deleteReviewsByProductId(int productId) throws SQLException {
-        String sql = "DELETE FROM review WHERE product_id = ?";
-        
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, productId);
-            return pstmt.executeUpdate() > 0;
-        }
-    }
-    
-    /**
-     * Trích xuất Review object từ ResultSet
-     */
-    private Review extractReviewFromResultSet(ResultSet rs) throws SQLException {
-        Review review = new Review();
-        review.setReviewId(rs.getInt("review_id"));
-        review.setProductId(rs.getInt("product_id"));
-        review.setReviewerName(rs.getString("reviewer_name"));
-        review.setRating(rs.getInt("rating"));
-        review.setReviewText(rs.getString("review_text"));
-        review.setReviewDate(rs.getTimestamp("review_date"));
-        return review;
+        return 0;
     }
 }
