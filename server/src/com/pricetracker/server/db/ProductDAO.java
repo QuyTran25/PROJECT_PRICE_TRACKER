@@ -71,28 +71,31 @@ public class ProductDAO {
         // Priority 1: Exact phrase match (case-insensitive but accent-sensitive)
         // Priority 2: Word boundary match (space before/after or start/end of string)
         // Priority 3: Substring match with BINARY (accent-sensitive)
-        String sql = "SELECT DISTINCT p.* FROM product p WHERE " +
+        String sql = "SELECT DISTINCT p.* FROM product p " +
+                     "LEFT JOIN product_group pg ON p.group_id = pg.group_id " +
+                     "WHERE " +
                      // Exact match (highest priority)
                      "p.name COLLATE utf8mb4_bin LIKE ? OR " +
-                     // Word at start
                      "p.name COLLATE utf8mb4_bin LIKE ? OR " +
-                     // Word at end
                      "p.name COLLATE utf8mb4_bin LIKE ? OR " +
-                     // Word in middle
-                     "p.name COLLATE utf8mb4_bin LIKE ? " +
-                     "LIMIT 20";
+                     "p.name COLLATE utf8mb4_bin LIKE ? OR " +
+                     // Search in group name (exact and partial match)
+                     "pg.group_name COLLATE utf8mb4_bin LIKE ? OR " +
+                     "pg.group_name COLLATE utf8mb4_bin LIKE ? " +
+                     "LIMIT 50";
         
         try (Connection conn = DatabaseConnectionManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            // Exact match
-            stmt.setString(1, keyword);
-            // Word at start (keyword followed by space)
-            stmt.setString(2, keyword + " %");
-            // Word at end (space before keyword)
-            stmt.setString(3, "% " + keyword);
-            // Word in middle (space before AND after)
-            stmt.setString(4, "% " + keyword + " %");
+            // Product name patterns
+            stmt.setString(1, keyword);  // Exact match
+            stmt.setString(2, keyword + " %");  // Word at start
+            stmt.setString(3, "% " + keyword);  // Word at end
+            stmt.setString(4, "% " + keyword + " %");  // Word in middle
+            
+            // Group name patterns
+            stmt.setString(5, keyword);  // Exact group name match
+            stmt.setString(6, "%" + keyword + "%");  // Partial group name match
             
             ResultSet rs = stmt.executeQuery();
             

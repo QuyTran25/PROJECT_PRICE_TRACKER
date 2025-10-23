@@ -161,8 +161,13 @@ function displayResults(response) {
     const resultsContainer = document.getElementById('frame_sp');
     const resultsInfo = document.getElementById('ket_qua');
     
+    // Always show results section
+    if (resultsInfo) {
+        resultsInfo.style.display = 'block';
+    }
+    
     if (!response.success) {
-        // Show error message
+        // Show error message with better styling
         if (resultsInfo) {
             resultsInfo.innerHTML = `<p class="error-message">${response.error}</p>`;
             resultsInfo.style.display = 'block';
@@ -233,7 +238,10 @@ function displayResults(response) {
     
     // Fallback error
     if (resultsInfo) {
-        resultsInfo.innerHTML = '<p class="error-message">Không có kết quả</p>';
+        resultsInfo.innerHTML = `
+            <p style="font-size:2rem; font-weight:bolder;color:#EC4899;text-align: center;font-family: 'roboto', sans-serif;margin: 1.25rem 0;">Kết quả tìm kiếm</p>
+            <p class="error-message">Không có kết quả. Vui lòng thử lại!</p>
+        `;
         resultsInfo.style.display = 'block';
     }
     if (resultsContainer) {
@@ -333,32 +341,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (framesp) {
             framesp.style.display = 'none';
         }
-        return;
+    } else {
+        // Perform search if query exists
+        showLoading();
+        
+        searchProducts(query)
+            .then(response => {
+                displayResults(response);
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                const resultsInfo = document.getElementById('ket_qua');
+                if (resultsInfo) {
+                    resultsInfo.innerHTML = 
+                        `<p class="error-message">Lỗi kết nối: ${error.message}<br>
+                        <small>Vui lòng đảm bảo server đang chạy tại ${SERVER_HOST}:${SERVER_PORT}</small></p>`;
+                    resultsInfo.style.display = 'block';
+                }
+            });
     }
-    
-    // Perform search
-    showLoading();
-    
-    searchProducts(query)
-        .then(response => {
-            displayResults(response);
-        })
-        .catch(error => {
-            console.error('Search error:', error);
-            const resultsInfo = document.getElementById('ket_qua');
-            if (resultsInfo) {
-                resultsInfo.innerHTML = 
-                    `<p class="error-message">Lỗi kết nối: ${error.message}<br>
-                    <small>Vui lòng đảm bảo server đang chạy tại ${SERVER_HOST}:${SERVER_PORT}</small></p>`;
-                resultsInfo.style.display = 'block';
-            }
-        });
     
     // Handle search button click
     const searchButton = document.getElementById('search_button');
     if (searchButton) {
         searchButton.addEventListener('click', function() {
-            handleSearch();
+            performSearchNow();
         });
     }
     
@@ -366,10 +373,25 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput) {
         searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                handleSearch();
+                performSearchNow();
             }
         });
     }
+    
+    // Handle suggestion tag clicks
+    const suggestionTags = document.querySelectorAll('#loai_sp p');
+    suggestionTags.forEach(tag => {
+        tag.addEventListener('click', function() {
+            // Use data-keyword for optimized search
+            const keyword = this.getAttribute('data-keyword') || this.textContent.trim();
+            
+            searchInput.value = keyword;
+            performSearchNow();
+        });
+        
+        // Add hover effect cursor
+        tag.style.cursor = 'pointer';
+    });
 });
 
 /**
@@ -388,3 +410,43 @@ function handleSearch() {
     window.location.href = `timKiem.html?q=${encodeURIComponent(searchValue)}`;
 }
 
+/**
+ * Perform search immediately without page reload
+ * This provides better UX - search happens on the same page
+ */
+function performSearchNow() {
+    const searchInput = document.getElementById('search_input');
+    const searchValue = searchInput.value.trim();
+    
+    if (searchValue === '') {
+        alert('Vui lòng nhập từ khóa tìm kiếm!');
+        return;
+    }
+    
+    // Update URL without reload
+    const newUrl = `${window.location.pathname}?q=${encodeURIComponent(searchValue)}`;
+    window.history.pushState({query: searchValue}, '', newUrl);
+    
+    // Show loading and perform search
+    showLoading();
+    
+    searchProducts(searchValue)
+        .then(response => {
+            displayResults(response);
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+            const resultsInfo = document.getElementById('ket_qua');
+            if (resultsInfo) {
+                resultsInfo.innerHTML = 
+                    `<p class="error-message">Lỗi kết nối: ${error.message}<br>
+                    <small>Vui lòng đảm bảo server đang chạy tại ${SERVER_HOST}:${SERVER_PORT}</small></p>`;
+                resultsInfo.style.display = 'block';
+            }
+            
+            const resultsContainer = document.getElementById('frame_sp');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = '';
+            }
+        });
+}
