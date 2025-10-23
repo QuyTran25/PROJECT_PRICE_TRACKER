@@ -45,6 +45,11 @@
     color: #CC0843;
 }
 
+#header #menu a.active {
+    text-decoration: underline;
+    color: #CC0843;
+}
+
 #header #menu #active {
     text-decoration: underline;
     color: #CC0843;

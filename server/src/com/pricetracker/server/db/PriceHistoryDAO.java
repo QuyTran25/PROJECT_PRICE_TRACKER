@@ -86,4 +86,38 @@ public class PriceHistoryDAO {
         }
         return null;
     }
+    
+    /**
+     * Get current price data (price, original_price, deal_type) of a product
+     * Returns PriceHistory object with most recent data
+     * @param productId The product ID
+     * @return PriceHistory with current price data, or null if not found
+     */
+    public PriceHistory getCurrentPrice(int productId) {
+        String sql = "SELECT * FROM price_history WHERE product_id = ? ORDER BY recorded_at DESC LIMIT 1";
+        
+        try (Connection conn = DatabaseConnectionManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, productId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                PriceHistory ph = new PriceHistory();
+                ph.setPriceId(rs.getInt("price_id"));
+                ph.setProductId(rs.getInt("product_id"));
+                ph.setPrice(rs.getDouble("price"));
+                ph.setOriginalPrice(rs.getDouble("original_price"));
+                ph.setCurrency(rs.getString("currency"));
+                ph.setDealType(rs.getString("deal_type"));
+                ph.setCapturedAt(rs.getTimestamp("recorded_at"));
+                return ph;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting current price: " + e.getMessage());
+        }
+        
+        return null;
+    }
 }

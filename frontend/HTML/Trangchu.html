@@ -81,6 +81,28 @@
     </div>
     <div id="footer"></div>
     <script src="../JS/loadFrame.js"></script>
+    <script>
+        // Search functionality
+        const searchInput = document.querySelector('.search-box input');
+        const ctaButton = document.querySelector('.cta-button');
+        
+        // Handle Enter key in search box
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const query = this.value.trim();
+                if (query) {
+                    // Redirect to search results page with query parameter
+                    window.location.href = `timKiem.html?q=${encodeURIComponent(query)}`;
+                }
+            }
+        });
+        
+        // Handle "Bắt đầu tiết kiệm" button click
+        ctaButton.addEventListener('click', function() {
+            // Redirect to search page
+            window.location.href = 'timKiem.html';
+        });
+    </script>
 </body>
 
 </html>

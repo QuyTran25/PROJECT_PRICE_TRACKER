@@ -1,5 +1,13 @@
 package com.pricetracker.server.handler;
 
+import com.pricetracker.models.PriceHistory;
+import com.pricetracker.models.Product;
+import com.pricetracker.server.db.PriceHistoryDAO;
+import com.pricetracker.server.db.ProductDAO;
+import com.pricetracker.server.db.ProductGroupDAO;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -90,10 +98,8 @@ public class ClientHandler implements Runnable {
      * Xử lý yêu cầu và trả về kết quả
      * Đây là logic nghiệp vụ chính của hệ thống
      * 
-     * TODO: Implement logic xử lý thực tế
-     * - Giải mã request (nếu có mã hóa)
-     * - Truy vấn database
-     * - Mã hóa response (nếu cần)
+     * Updated with SEARCH_BY_URL and SEARCH_BY_NAME handlers
+     * Returns JSON response for frontend
      */
     private String processRequest(String request) throws Exception {
         // Parse request để xác định loại yêu cầu
@@ -101,7 +107,7 @@ public class ClientHandler implements Runnable {
         
         String[] parts = request.split("\\|");
         if (parts.length == 0) {
-            return "ERROR|Invalid request format";
+            return buildErrorResponse("Invalid request format");
         }
         
         String action = parts[0];
@@ -110,6 +116,20 @@ public class ClientHandler implements Runnable {
         switch (action) {
             case "PING":
                 return "PONG|Server is alive";
+                
+            case "SEARCH_BY_URL":
+                // Format: SEARCH_BY_URL|<tiki_url>
+                if (parts.length < 2) {
+                    return buildErrorResponse("Missing URL parameter");
+                }
+                return handleSearchByUrl(parts[1]);
+                
+            case "SEARCH_BY_NAME":
+                // Format: SEARCH_BY_NAME|<keyword>
+                if (parts.length < 2) {
+                    return buildErrorResponse("Missing search keyword");
+                }
+                return handleSearchByName(parts[1]);
                 
             case "SEARCH_PRODUCT":
                 // TODO: Implement search logic
@@ -132,8 +152,173 @@ public class ClientHandler implements Runnable {
                 return "ALL_PRODUCTS|0|No implementation yet";
                 
             default:
-                return "ERROR|Unknown action: " + action;
+                return buildErrorResponse("Unknown action: " + action);
         }
+    }
+    
+    /**
+     * Handle SEARCH_BY_URL request
+     * Case 1: Product exists → return product card data
+     * Case 2: Product new → scrape, insert DB, return notification + card
+     */
+    private String handleSearchByUrl(String tikiUrl) {
+        try {
+            ProductDAO productDAO = new ProductDAO();
+            
+            // Check if product exists in database
+            Product product = productDAO.searchByUrl(tikiUrl);
+            
+            if (product != null) {
+                // Case 1: Product exists
+                System.out.println("✅ Found existing product: " + product.getName());
+                return buildProductResponse(product, false);
+            } else {
+                // Case 2: New product - scrape and insert
+                System.out.println("🔍 New product detected, scraping from Tiki...");
+                product = productDAO.insertProductFromTiki(tikiUrl);
+                
+                if (product != null) {
+                    System.out.println("✅ Successfully added new product: " + product.getName());
+                    return buildProductResponse(product, true);
+                } else {
+                    return buildErrorResponse("Failed to scrape product from Tiki. Please check URL.");
+                }
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return buildErrorResponse("Error processing URL search: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Handle SEARCH_BY_NAME request
+     * Case 3: Matches found → return all matching products
+     * Case 4: No matches → return friendly error message
+     */
+    private String handleSearchByName(String keyword) {
+        try {
+            ProductDAO productDAO = new ProductDAO();
+            
+            // Search for products matching keyword
+            java.util.List<Product> products = productDAO.searchByNameLike(keyword);
+            
+            if (products.isEmpty()) {
+                // Case 4: No matches found
+                return buildErrorResponse("Sản phẩm bạn tìm hiện chưa có trong dữ liệu của chúng tôi. Hãy thử sản phẩm khác nhé ^^");
+            } else {
+                // Case 3: Matches found
+                System.out.println("✅ Found " + products.size() + " products matching: " + keyword);
+                return buildMultipleProductsResponse(products);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return buildErrorResponse("Error processing name search: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Build JSON response for single product
+     * Format: {"success": true, "isNew": boolean, "product": {...}}
+     */
+    private String buildProductResponse(Product product, boolean isNew) {
+        try {
+            JSONObject response = new JSONObject();
+            response.put("success", true);
+            response.put("isNew", isNew);
+            response.put("product", buildProductJSON(product));
+            
+            return response.toString();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return buildErrorResponse("Error building response");
+        }
+    }
+    
+    /**
+     * Build JSON response for multiple products
+     * Format: {"success": true, "count": n, "products": [...]}
+     */
+    private String buildMultipleProductsResponse(java.util.List<Product> products) {
+        try {
+            JSONObject response = new JSONObject();
+            response.put("success", true);
+            response.put("count", products.size());
+            
+            JSONArray productArray = new JSONArray();
+            for (Product product : products) {
+                productArray.put(buildProductJSON(product));
+            }
+            response.put("products", productArray);
+            
+            return response.toString();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return buildErrorResponse("Error building response");
+        }
+    }
+    
+    /**
+     * Build JSON object for a single product
+     * Includes product data + current price + group name
+     */
+    private JSONObject buildProductJSON(Product product) {
+        JSONObject json = new JSONObject();
+        
+        // Product basic info
+        json.put("product_id", product.getProductId());
+        json.put("group_id", product.getGroupId());
+        json.put("name", product.getName());
+        json.put("brand", product.getBrand());
+        json.put("url", product.getUrl());
+        json.put("image_url", product.getImageUrl());
+        json.put("description", product.getDescription());
+        json.put("source", product.getSource());
+        
+        // Get group name
+        ProductGroupDAO groupDAO = new ProductGroupDAO();
+        String groupName = groupDAO.getGroupNameById(product.getGroupId());
+        json.put("group_name", groupName);
+        
+        // Get current price data
+        PriceHistoryDAO priceDAO = new PriceHistoryDAO();
+        PriceHistory currentPrice = priceDAO.getCurrentPrice(product.getProductId());
+        
+        if (currentPrice != null) {
+            json.put("price", currentPrice.getPrice());
+            json.put("original_price", currentPrice.getOriginalPrice());
+            json.put("deal_type", currentPrice.getDealType());
+            
+            // Calculate discount percentage
+            if (currentPrice.getOriginalPrice() > 0) {
+                double discount = ((currentPrice.getOriginalPrice() - currentPrice.getPrice()) 
+                                   / currentPrice.getOriginalPrice()) * 100;
+                json.put("discount_percent", Math.round(discount));
+            } else {
+                json.put("discount_percent", 0);
+            }
+        } else {
+            json.put("price", 0);
+            json.put("original_price", 0);
+            json.put("deal_type", "Normal");
+            json.put("discount_percent", 0);
+        }
+        
+        return json;
+    }
+    
+    /**
+     * Build error response JSON
+     * Format: {"success": false, "error": "message"}
+     */
+    private String buildErrorResponse(String errorMessage) {
+        JSONObject response = new JSONObject();
+        response.put("success", false);
+        response.put("error", errorMessage);
+        return response.toString();
     }
     
     /**
