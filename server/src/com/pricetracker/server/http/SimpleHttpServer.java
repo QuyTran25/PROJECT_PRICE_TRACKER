@@ -6,9 +6,11 @@ import com.sun.net.httpserver.Headers;
 import com.pricetracker.server.db.ProductDAO;
 import com.pricetracker.server.db.PriceHistoryDAO;
 import com.pricetracker.server.db.ProductGroupDAO;
+import com.pricetracker.server.db.ReviewDAO;
 import com.pricetracker.server.utils.TikiScraperUtil;
 import com.pricetracker.models.Product;
 import com.pricetracker.models.PriceHistory;
+import com.pricetracker.models.Review;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
@@ -27,11 +29,15 @@ public class SimpleHttpServer {
     private ProductDAO productDAO;
     private PriceHistoryDAO priceHistoryDAO;
     private ProductGroupDAO productGroupDAO;
+    private ReviewDAO reviewDAO;
+
 
     public SimpleHttpServer() {
         this.productDAO = new ProductDAO();
         this.priceHistoryDAO = new PriceHistoryDAO();
         this.productGroupDAO = new ProductGroupDAO();
+        this.reviewDAO = new ReviewDAO();
+
     }
 
     public void start() throws IOException {
@@ -40,11 +46,19 @@ public class SimpleHttpServer {
         // CORS and search endpoint
         server.createContext("/search", this::handleSearch);
         
+        // NEW: Deals endpoint for discount page
+        server.createContext("/deals", this::handleDeals);
+        
+        // NEW: Product detail endpoint
+        server.createContext("/product-detail", this::handleProductDetail);
+        
         server.setExecutor(null); // creates a default executor
         server.start();
         
         System.out.println("✓ HTTP Server started on port " + HTTP_PORT);
         System.out.println("  Frontend can now connect via: http://localhost:" + HTTP_PORT + "/search");
+        System.out.println("  Frontend can also access deals via: http://localhost:" + HTTP_PORT + "/deals");
+        System.out.println("  Frontend can also access product detail via: http://localhost:" + HTTP_PORT + "/product-detail");
     }
 
     private void handleSearch(HttpExchange exchange) throws IOException {
@@ -216,6 +230,299 @@ public class SimpleHttpServer {
                 response.put("count", products.size());
                 response.put("products", productsArray);
             }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("error", "Lỗi hệ thống: " + e.getMessage());
+        }
+        
+        return response;
+    }
+
+    /**
+     * NEW: Handle deals endpoint - Get products with discounts
+     * Supports filtering by deal_type: FLASH_SALE, HOT_DEAL, TRENDING, or ALL
+     */
+    private void handleDeals(HttpExchange exchange) throws IOException {
+        // Add CORS headers
+        Headers headers = exchange.getResponseHeaders();
+        headers.add("Access-Control-Allow-Origin", "*");
+        headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        headers.add("Access-Control-Allow-Headers", "Content-Type");
+        headers.add("Content-Type", "application/json; charset=UTF-8");
+
+        // Handle preflight OPTIONS request
+        if ("OPTIONS".equals(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(200, -1);
+            return;
+        }
+
+        try {
+            String dealType = "ALL"; // Default: get all deals
+            
+            // Check if POST request with body
+            if ("POST".equals(exchange.getRequestMethod())) {
+                InputStream is = exchange.getRequestBody();
+                String requestBody = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
+                        .lines()
+                        .reduce("", (acc, line) -> acc + line);
+
+                if (!requestBody.isEmpty()) {
+                    JSONObject requestJson = new JSONObject(requestBody);
+                    if (requestJson.has("deal_type")) {
+                        dealType = requestJson.getString("deal_type");
+                    }
+                }
+            }
+            
+            System.out.println("📥 Received deals request - Deal type: " + dealType);
+
+            JSONObject responseJson = handleGetDeals(dealType);
+            
+            String response = responseJson.toString();
+            System.out.println("📤 Sending deals response with " + 
+                             responseJson.optInt("count", 0) + " products");
+            sendResponse(exchange, 200, response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            String errorResponse = String.format(
+                "{\"success\": false, \"error\": \"Server error: %s\"}", 
+                e.getMessage().replace("\"", "\\\"")
+            );
+            sendResponse(exchange, 500, errorResponse);
+        }
+    }
+
+    /**
+     * NEW: Get products with deals/discounts
+     * @param dealType Filter by deal type: "FLASH_SALE", "HOT_DEAL", "TRENDING", or "ALL"
+     * @return JSONObject with products list
+     */
+    private JSONObject handleGetDeals(String dealType) {
+        JSONObject response = new JSONObject();
+        
+        try {
+            System.out.println("🎁 Fetching deals - Type: " + dealType);
+            
+            List<Product> products = productDAO.getProductsByDealType(dealType);
+            
+            if (products.isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Hiện tại chưa có sản phẩm giảm giá nào. Vui lòng quay lại sau!");
+            } else {
+                System.out.println("✓ Found " + products.size() + " deal products");
+                
+                JSONArray productsArray = new JSONArray();
+                
+                for (Product product : products) {
+                    PriceHistory currentPrice = priceHistoryDAO.getCurrentPrice(product.getProductId());
+                    String groupName = productGroupDAO.getGroupNameById(product.getGroupId());
+                    
+                    productsArray.put(buildProductJSON(product, currentPrice, groupName));
+                }
+                
+                response.put("success", true);
+                response.put("count", products.size());
+                response.put("deal_type", dealType);
+                response.put("products", productsArray);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("error", "Lỗi hệ thống: " + e.getMessage());
+        }
+        
+        return response;
+    }
+
+    /**
+     * NEW: Handle product detail endpoint - Get detailed product information
+     * Requires product_id in request body
+     */
+    private void handleProductDetail(HttpExchange exchange) throws IOException {
+        // Add CORS headers
+        Headers headers = exchange.getResponseHeaders();
+        headers.add("Access-Control-Allow-Origin", "*");
+        headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        headers.add("Access-Control-Allow-Headers", "Content-Type");
+        headers.add("Content-Type", "application/json; charset=UTF-8");
+
+        // Handle preflight OPTIONS request
+        if ("OPTIONS".equals(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(200, -1);
+            return;
+        }
+
+        try {
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                String errorResponse = "{\"success\": false, \"error\": \"Method not allowed. Use POST.\"}";
+                sendResponse(exchange, 405, errorResponse);
+                return;
+            }
+            
+            // Read request body
+            InputStream is = exchange.getRequestBody();
+            String requestBody = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
+                    .lines()
+                    .reduce("", (acc, line) -> acc + line);
+
+            if (requestBody.isEmpty()) {
+                String errorResponse = "{\"success\": false, \"error\": \"Missing product_id in request body\"}";
+                sendResponse(exchange, 400, errorResponse);
+                return;
+            }
+            
+            JSONObject requestJson = new JSONObject(requestBody);
+            if (!requestJson.has("product_id")) {
+                String errorResponse = "{\"success\": false, \"error\": \"Missing product_id in request body\"}";
+                sendResponse(exchange, 400, errorResponse);
+                return;
+            }
+            
+            int productId = requestJson.getInt("product_id");
+            System.out.println("📥 Received product detail request - Product ID: " + productId);
+
+            JSONObject responseJson = handleGetProductDetail(productId);
+            
+            String response = responseJson.toString();
+            System.out.println("📤 Sending product detail response");
+            sendResponse(exchange, 200, response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            String errorResponse = String.format(
+                "{\"success\": false, \"error\": \"Server error: %s\"}", 
+                e.getMessage().replace("\"", "\\\"")
+            );
+            sendResponse(exchange, 500, errorResponse);
+        }
+    }
+
+    /**
+     * NEW: Get detailed product information including price history, reviews, and similar products
+     * @param productId The product ID
+     * @return JSONObject with complete product details
+     */
+    private JSONObject handleGetProductDetail(int productId) {
+        JSONObject response = new JSONObject();
+        
+        try {
+            System.out.println("🔍 Fetching product detail - ID: " + productId);
+            
+            // Get product basic info
+            Product product = productDAO.getProductById(productId);
+            
+            if (product == null) {
+                response.put("success", false);
+                response.put("error", "Không tìm thấy sản phẩm này!");
+                return response;
+            }
+            
+            System.out.println("✓ Found product: " + product.getName());
+            
+            // Get current price
+            PriceHistory currentPrice = priceHistoryDAO.getCurrentPrice(productId);
+            
+            // Get price history
+            List<PriceHistory> priceHistory = priceHistoryDAO.getPriceHistoryByProductId(productId);
+            
+            // Get reviews
+            List<Review> reviews = reviewDAO.getReviewsByProductId(productId);
+            int reviewCount = reviewDAO.countReviewsByProductId(productId);
+            
+            // Get similar products (same group) - 16 products for 4 rows
+            List<Product> similarProducts = productDAO.getSimilarProducts(
+                product.getGroupId(), 
+                productId, 
+                16  // Limit to 16 similar products (4 rows x 4 columns)
+            );
+            
+            // Get group name
+            String groupName = productGroupDAO.getGroupNameById(product.getGroupId());
+            
+            // Build response JSON
+            response.put("success", true);
+            
+            // Product info
+            JSONObject productJson = new JSONObject();
+            productJson.put("product_id", product.getProductId());
+            productJson.put("group_id", product.getGroupId());
+            productJson.put("group_name", groupName);
+            productJson.put("name", product.getName());
+            productJson.put("brand", product.getBrand() != null ? product.getBrand() : "");
+            productJson.put("url", product.getUrl());
+            productJson.put("image_url", product.getImageUrl());
+            productJson.put("description", product.getDescription() != null ? product.getDescription() : "");
+            productJson.put("source", product.getSource());
+            
+            response.put("product", productJson);
+            
+            // Current price info
+            JSONObject priceJson = new JSONObject();
+            if (currentPrice != null) {
+                priceJson.put("current_price", currentPrice.getPrice());
+                priceJson.put("original_price", currentPrice.getOriginalPrice());
+                priceJson.put("currency", currentPrice.getCurrency());
+                priceJson.put("deal_type", currentPrice.getDealType() != null ? currentPrice.getDealType() : "Normal");
+                
+                // Calculate discount percentage
+                int discountPercent = 0;
+                if (currentPrice.getOriginalPrice() > currentPrice.getPrice() && currentPrice.getOriginalPrice() > 0) {
+                    discountPercent = (int) Math.round(((currentPrice.getOriginalPrice() - currentPrice.getPrice()) / currentPrice.getOriginalPrice()) * 100);
+                }
+                priceJson.put("discount_percent", discountPercent);
+            } else {
+                priceJson.put("current_price", 0);
+                priceJson.put("original_price", 0);
+                priceJson.put("currency", "VND");
+                priceJson.put("deal_type", "Normal");
+                priceJson.put("discount_percent", 0);
+            }
+            response.put("price", priceJson);
+            
+            // Price history array
+            JSONArray priceHistoryArray = new JSONArray();
+            for (PriceHistory ph : priceHistory) {
+                JSONObject phJson = new JSONObject();
+                phJson.put("price", ph.getPrice());
+                phJson.put("original_price", ph.getOriginalPrice());
+                phJson.put("captured_at", ph.getCapturedAt().toString());
+                phJson.put("deal_type", ph.getDealType() != null ? ph.getDealType() : "Normal");
+                priceHistoryArray.put(phJson);
+            }
+            response.put("price_history", priceHistoryArray);
+            
+            // Reviews
+            JSONObject reviewsJson = new JSONObject();
+            reviewsJson.put("count", reviewCount);
+            
+            JSONArray reviewsArray = new JSONArray();
+            for (Review review : reviews) {
+                JSONObject rJson = new JSONObject();
+                rJson.put("reviewer_name", review.getReviewerName());
+                rJson.put("rating", review.getRating());
+                rJson.put("review_text", review.getReviewText());
+                rJson.put("review_date", review.getReviewDate().toString());
+                reviewsArray.put(rJson);
+            }
+            reviewsJson.put("reviews", reviewsArray);
+            response.put("reviews", reviewsJson);
+            
+            // Similar products
+            JSONArray similarProductsArray = new JSONArray();
+            for (Product sp : similarProducts) {
+                PriceHistory spPrice = priceHistoryDAO.getCurrentPrice(sp.getProductId());
+                JSONObject spJson = buildProductJSON(sp, spPrice, groupName);
+                similarProductsArray.put(spJson);
+            }
+            response.put("similar_products", similarProductsArray);
+            
+            System.out.println("✓ Product detail prepared: " + reviewCount + " reviews, " + 
+                             priceHistory.size() + " price records, " + 
+                             similarProducts.size() + " similar products");
             
         } catch (Exception e) {
             e.printStackTrace();

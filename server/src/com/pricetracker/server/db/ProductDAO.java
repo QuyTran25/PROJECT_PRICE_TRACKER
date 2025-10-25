@@ -34,6 +34,31 @@ public class ProductDAO {
     }
     
     /**
+     * Get product by ID
+     * @param productId The product ID
+     * @return Product if found, null otherwise
+     */
+    public Product getProductById(int productId) {
+        String sql = "SELECT * FROM product WHERE product_id = ?";
+        
+        try (Connection conn = DatabaseConnectionManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, productId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return mapResultSetToProduct(rs);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting product by ID: " + e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    /**
      * Search product by exact Tiki URL
      * @param tikiUrl The Tiki product URL
      * @return Product if found, null otherwise
@@ -56,6 +81,41 @@ public class ProductDAO {
         }
         
         return null;
+    }
+    
+    /**
+     * Get similar products by group_id (for "Similar Products" section)
+     * @param groupId The product group ID
+     * @param excludeProductId Product ID to exclude (the current product)
+     * @param limit Maximum number of similar products to return
+     * @return List of similar products
+     */
+    public List<Product> getSimilarProducts(int groupId, int excludeProductId, int limit) {
+        List<Product> results = new ArrayList<>();
+        
+        String sql = "SELECT * FROM product " +
+                     "WHERE group_id = ? AND product_id != ? " +
+                     "ORDER BY product_id DESC " +
+                     "LIMIT ?";
+        
+        try (Connection conn = DatabaseConnectionManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, groupId);
+            stmt.setInt(2, excludeProductId);
+            stmt.setInt(3, limit);
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                results.add(mapResultSetToProduct(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting similar products: " + e.getMessage());
+        }
+        
+        return results;
     }
     
     /**
@@ -211,4 +271,117 @@ public class ProductDAO {
         p.setCreatedAt(rs.getTimestamp("created_at"));
         return p;
     }
+    
+    /**
+     * NEW METHOD: Get products by deal type (for discount page)
+     * Logic sorting:
+     * - ALL: Giảm giá HOT NHẤT (% giảm cao nhất)
+     * - FLASH_SALE: VỪA MỚI GIẢM (recorded_at gần nhất)
+     * - HOT_DEAL: GIẢM SÂU (% giảm cao + giá trị tiết kiệm lớn)
+     * - TRENDING: MỖI DANH MỤC 1 SẢN PHẨM GIẢM GIÁ SÂU NHẤT
+     * 
+     * @param dealType "FLASH_SALE", "HOT_DEAL", "TRENDING", or "ALL" for all deals
+     * @return List of products with the specified deal type
+     */
+    public List<Product> getProductsByDealType(String dealType) {
+        List<Product> results = new ArrayList<>();
+        
+        String sql;
+        
+        if ("ALL".equals(dealType)) {
+            // TẤT CẢ DEALS HOT: Sản phẩm giảm giá HOT NHẤT (% giảm cao nhất)
+            sql = "SELECT DISTINCT p.*, ph.original_price, ph.price, ph.recorded_at " +
+                  "FROM product p " +
+                  "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
+                  "WHERE ph.price_id IN (" +
+                  "    SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
+                  ") AND ph.original_price > ph.price " +
+                  "ORDER BY ((ph.original_price - ph.price) / ph.original_price) DESC " +
+                  "LIMIT 100";
+                  
+        } else if ("FLASH_SALE".equals(dealType)) {
+            // FLASH SALE: VỪA MỚI GIẢM GIÁ (recorded_at mới nhất)
+            sql = "SELECT DISTINCT p.*, ph.original_price, ph.price, ph.recorded_at " +
+                  "FROM product p " +
+                  "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
+                  "WHERE ph.price_id IN (" +
+                  "    SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
+                  ") AND ph.deal_type = 'FLASH_SALE' AND ph.original_price > ph.price " +
+                  "ORDER BY ph.recorded_at DESC, ((ph.original_price - ph.price) / ph.original_price) DESC " +
+                  "LIMIT 100";
+                  
+        } else if ("HOT_DEAL".equals(dealType)) {
+            // HOT DEAL: GIẢM SÂU (kết hợp % giảm và giá trị tiết kiệm)
+            sql = "SELECT DISTINCT p.*, ph.original_price, ph.price, ph.recorded_at " +
+                  "FROM product p " +
+                  "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
+                  "WHERE ph.price_id IN (" +
+                  "    SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
+                  ") AND ph.deal_type = 'HOT_DEAL' AND ph.original_price > ph.price " +
+                  "ORDER BY (ph.original_price - ph.price) DESC, " +
+                  "         ((ph.original_price - ph.price) / ph.original_price) DESC " +
+                  "LIMIT 100";
+                  
+        } else if ("TRENDING".equals(dealType)) {
+            // TRENDING: MỖI DANH MỤC 1 SẢN PHẨM GIẢM GIÁ SÂU NHẤT
+            // Logic: Lấy sản phẩm có % giảm giá cao nhất từ mỗi product_group
+            sql = "SELECT p.*, ph.original_price, ph.price, ph.recorded_at " +
+                  "FROM product p " +
+                  "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
+                  "INNER JOIN (" +
+                  "    SELECT p2.group_id, " +
+                  "           MAX((ph2.original_price - ph2.price) / ph2.original_price) as max_discount " +
+                  "    FROM product p2 " +
+                  "    INNER JOIN price_history ph2 ON p2.product_id = ph2.product_id " +
+                  "    WHERE ph2.price_id IN (" +
+                  "        SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
+                  "    ) AND ph2.original_price > ph2.price " +
+                  "    GROUP BY p2.group_id" +
+                  ") AS best_per_group ON p.group_id = best_per_group.group_id " +
+                  "    AND ((ph.original_price - ph.price) / ph.original_price) = best_per_group.max_discount " +
+                  "WHERE ph.price_id IN (" +
+                  "    SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
+                  ") AND ph.original_price > ph.price " +
+                  "GROUP BY p.group_id " +
+                  "ORDER BY ((ph.original_price - ph.price) / ph.original_price) DESC " +
+                  "LIMIT 100";
+        } else {
+            // Fallback: Sort by discount percent
+            sql = "SELECT DISTINCT p.*, ph.original_price, ph.price, ph.recorded_at " +
+                  "FROM product p " +
+                  "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
+                  "WHERE ph.price_id IN (" +
+                  "    SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
+                  ") AND ph.deal_type = ? AND ph.original_price > ph.price " +
+                  "ORDER BY ((ph.original_price - ph.price) / ph.original_price) DESC " +
+                  "LIMIT 100";
+        }
+        
+        try (Connection conn = DatabaseConnectionManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            // Chỉ set parameter nếu không phải các case đặc biệt
+            if (!"ALL".equals(dealType) && 
+                !"FLASH_SALE".equals(dealType) && 
+                !"HOT_DEAL".equals(dealType) && 
+                !"TRENDING".equals(dealType)) {
+                stmt.setString(1, dealType);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                results.add(mapResultSetToProduct(rs));
+            }
+            
+            System.out.println("✓ Found " + results.size() + " products with deal type: " + dealType);
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting products by deal type: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return results; 
+    }
 }
+

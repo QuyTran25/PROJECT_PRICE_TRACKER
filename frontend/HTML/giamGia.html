@@ -6,16 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../CSS/main.css">
     <link rel="stylesheet" href="../CSS/giamGia.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
-        rel="stylesheet">
-    <title>Giảm giá</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <title>Giảm giá - Price Tracker</title>
 </head>
 
 <body>
     <div id="header"></div>
 
     <div id="content">
-        <div id="banner">
+        <!-- Banner -->
+         <div id="banner">
             <svg class="banner-svg" width="100%" height="621" viewBox="0 0 1440 621" fill="none"
                 xmlns="http://www.w3.org/2000/svg">
                 <rect width="1440" height="621" fill="url(#paint0_linear_134_3)" />
@@ -62,638 +63,80 @@
                 </defs>
             </svg>
         </div>
+
+        <!-- Category Navigation -->
         <div id="nut">
-            <a href="#deal_hot" class="chucnang">Tất cả<span>(2)</span></a>
+            <a href="#deal_hot" class="chucnang">Tất cả<span id="count-all">(0)</span></a>
             <a href="#flash_sale" class="chucnang">
                 <i class="fa-solid fa-bolt-lightning"></i>
-                Flash Sale<span>(2)</span>
+                Flash Sale<span id="count-flash">(0)</span>
             </a>
-            <a href="#hot_deal" class="chucnang">Hot Deal<span>(2)</span></a>
+            <a href="#hot_deal" class="chucnang">
+                <i class="fa-solid fa-fire"></i>
+                Hot Deal<span id="count-hot">(0)</span>
+            </a>
             <a href="#trending" class="chucnang">
                 <i class="fa-solid fa-arrow-trend-up"></i>
-                Trending<span>(2)</span>
+                Trending<span id="count-trending">(0)</span>
             </a>
         </div>
-        <!-- deals hot -->
-        <div class="frame_sanpham" id="deal_hot">
-            <p class="ten_deal">Tất cả deals hot</p>
-            <div class="sanpham">
-                <!-- Hàng 1 -->
-                <div class="hang">
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">-17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">-17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">-17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Hàng 2 -->
-                <div class="hang">
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">-17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">-17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">-17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                </div>
+        <!-- Deals Hot (All) -->
+        <div class="frame_sanpham" id="deal_hot">
+            <p class="ten_deal">🔥 Tất cả Deals Hot</p>
+            <div class="sanpham">
+                <!-- Products will be loaded dynamically by JS -->
             </div>
-            <p class="xem_them">Xem Thêm</p>
+            <p class="xem_them" data-category="all">Xem Thêm</p>
         </div>
+
         <!-- Flash Sale -->
         <div class="frame_sanpham" id="flash_sale" style="background-color:#FDF2F8;">
             <p class="ten_deal">⚡ Flash Sale - Giảm nhanh</p>
             <div class="sanpham">
-                <!-- Hàng 1 -->
-                <div class="hang">
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Sale">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Flash Sale</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Sale">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Flash Sale</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Sale">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Flash Sale</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hàng 2 -->
-                <div class="hang">
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Sale">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Flash Sale</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Sale">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Flash Sale</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Sale">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Flash Sale</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Products will be loaded dynamically by JS -->
             </div>
-            <p class="xem_them">Xem Thêm</p>
+            <p class="xem_them" data-category="FLASH_SALE">Xem Thêm</p>
         </div>
-        <!--  Hot Deals -->
+
+        <!-- Hot Deal -->
         <div class="frame_sanpham" id="hot_deal">
-            <p class="ten_deal">🔥 Hot Deals - Giảm sâu</p>
+            <p class="ten_deal">🔥 Hot Deal - Ưu đãi hấp dẫn</p>
             <div class="sanpham">
-                <!-- Hàng 1 -->
-                <div class="hang">
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hàng 2 -->
-                <div class="hang">
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal deal">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Hot Deal</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Products will be loaded dynamically by JS -->
             </div>
-            <p class="xem_them">Xem Thêm</p>
+            <p class="xem_them" data-category="HOT_DEAL">Xem Thêm</p>
         </div>
+
         <!-- Trending -->
-        <div class="frame_sanpham" id="trending" style="background-color: #FDF2F8;">
-            <p class="ten_deal">✨ Trending - Đang hot</p>
+        <div class="frame_sanpham" id="trending">
+            <p class="ten_deal">📈 Trending - Sản phẩm hot</p>
             <div class="sanpham">
-                <!-- Hàng 2 -->
-                <div class="hang">
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Trending">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Trending</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Trending">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Trending</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Trending">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Trending</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hàng 2 -->
-                <div class="hang">
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Trending">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Trending</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Trending">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Trending</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                    <div class="mathang">
-                        <div class="hinh">
-                            <img src="https://cdn2.cellphones.com.vn/insecure/rs:fill:0:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/g/r/group_17333.png"
-                                alt="">
-                            <div class="tren_hinh">
-                                <div class="nhan_deal Trending">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Trending</span>
-                                </div>
-                                <div class="phan_tram">17%</div>
-                            </div>
-                        </div>
-                        <div class="thong_tin">
-                            <div class="nhom_sp">Tai nghe</div>
-                            <div class="ten_sp">Sony WH-1000XM5</div>
-                            <div class="gia_sp"><span>7.490.000</span> đ</div>
-                            <div class="tiet_kiem">
-                                <span class="gia_goc">8.990.000 đ</span>
-                                <p class="khau_tru">Tiết kiệm <span>1.500.000</span> đ</p>
-                            </div>
-                            <button class="chi_tiet">Xem chi tiết</button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Products will be loaded dynamically by JS -->
             </div>
-            <p class="xem_them">Xem Thêm</p>
+            <p class="xem_them" data-category="TRENDING">Xem Thêm</p>
         </div>
 
+        <!-- End Page -->
         <div id="end-page">
-            <p style="font-size: 2.5rem;font-weight: 500;font-family: 'Roboto', sans-serif;color: #CC0843;">Không tìm thấy
-                sản phẩm bạn muốn?</p>
-            <p style="font-size: 1.25rem;font-weight: lighter;">Tìm kiếm trong hơn 4,000+ sản phẩm hoặc duyệt theo danh mục
+            <p style="font-size: 1.5rem; font-weight: 600; font-family: 'Roboto', sans-serif; color: #CC0843; margin-bottom: 0.5rem;">
+                Không tìm thấy sản phẩm bạn muốn?
             </p>
-            <div style="display:flex;flex-direction:row;gap:1.25rem;margin-top:1.25rem;">
-                <a href="">
-                    <div class="box box1">Tìm kiếm sản phẩm</div>
+            <p style="font-size: 0.95rem; font-weight: 400; color: #666; margin-bottom: 1.5rem;">
+                Tìm kiếm trong hơn 4,000+ sản phẩm hoặc duyệt theo danh mục
+            </p>
+            <div style="display:flex; flex-direction:row; gap:0.875rem; margin-top:0.5rem;">
+                <a href="timKiem.html">
+                    <div class="box box1">
+                        <i class="fa-solid fa-magnifying-glass" style="margin-right: 0.5rem;"></i>
+                        Tìm kiếm sản phẩm
+                    </div>
                 </a>
-                <a href="">
-                    <div class="box box2">Danh mục sản phẩm</div>
+                <a href="danhMuc.html">
+                    <div class="box box2">
+                        <i class="fa-solid fa-grip" style="margin-right: 0.5rem;"></i>
+                        Danh mục sản phẩm
+                    </div>
                 </a>
             </div>
         </div>
@@ -701,8 +144,9 @@
 
     <div id="footer"></div>
 
-    <!-- Load frame script -->
+    <!-- Scripts -->
     <script src="../JS/loadFrame.js"></script>
+    <script src="../JS/giamGia.js"></script>
 </body>
 
 </html>
