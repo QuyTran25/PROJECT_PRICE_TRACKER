@@ -45,6 +45,41 @@ async function searchProducts(query) {
 }
 
 /**
+ * Search products by category (group_id)
+ * @param {number} groupId - Product group ID
+ * @returns {Promise<Object>} JSON response from server
+ */
+async function searchProductsByCategory(groupId) {
+    console.log('🔍 Searching by category:', groupId);
+    
+    try {
+        const response = await fetch(`http://${SERVER_HOST}:${SERVER_PORT}/search`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'SEARCH_BY_CATEGORY',
+                group_id: groupId
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Category search response:', data);
+        return data;
+        
+    } catch (error) {
+        console.error('❌ Category search error:', error);
+        throw error;
+    }
+}
+
+
+/**
  * Render single product card
  * @param {Object} product - Product data from server
  * @param {boolean} isNew - Whether this is a newly scraped product
@@ -320,9 +355,11 @@ function showLoading() {
  * Initialize search on page load
  */
 document.addEventListener('DOMContentLoaded', function() {
-    // Get query parameter from URL
+    // Get query parameters from URL
     const urlParams = new URLSearchParams(window.location.search);
     const query = urlParams.get('q');
+    const groupId = urlParams.get('group_id');
+    const categoryName = urlParams.get('category');
     
     // Update search box with query if exists
     const searchInput = document.getElementById('search_input');
@@ -330,7 +367,35 @@ document.addEventListener('DOMContentLoaded', function() {
         searchInput.value = query;
     }
     
-    // If no query, hide results
+    // Check if searching by category
+    if (groupId) {
+        console.log('Searching by category:', groupId, categoryName);
+        showLoading();
+        
+        // Update header to show category name
+        const resultsInfo = document.getElementById('ket_qua');
+        if (resultsInfo && categoryName) {
+            resultsInfo.innerHTML = `<h2>Danh mục: ${decodeURIComponent(categoryName)}</h2><p>Đang tải sản phẩm...</p>`;
+            resultsInfo.style.display = 'block';
+        }
+        
+        // Search by category
+        searchProductsByCategory(parseInt(groupId))
+            .then(response => {
+                displayResults(response);
+            })
+            .catch(error => {
+                console.error('Category search error:', error);
+                if (resultsInfo) {
+                    resultsInfo.innerHTML = 
+                        `<p class="error-message">Lỗi kết nối: ${error.message}</p>`;
+                }
+            });
+        
+        return;
+    }
+    
+    // If no query and no category, hide results
     if (!query) {
         const ketQuaSection = document.getElementById('ket_qua');
         const framesp = document.getElementById('frame_sp');

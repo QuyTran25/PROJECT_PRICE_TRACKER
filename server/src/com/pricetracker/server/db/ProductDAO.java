@@ -383,5 +383,56 @@ public class ProductDAO {
         
         return results; 
     }
+    
+    /**
+     * Get products by group_id (for category filtering)
+     * @param groupId The product group ID
+     * @return List of products in that group
+     */
+    public List<Product> getProductsByGroupId(int groupId) {
+        List<Product> results = new ArrayList<>();
+        String sql = "SELECT * FROM product WHERE group_id = ? ORDER BY product_id DESC LIMIT 100";
+        
+        try (Connection conn = DatabaseConnectionManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, groupId);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                results.add(mapResultSetToProduct(rs));
+            }
+            
+            System.out.println("✓ Found " + results.size() + " products in group " + groupId);
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting products by group: " + e.getMessage());
+        }
+        
+        return results;
+    }
+    
+    /**
+     * Count products in each group
+     * @return Map of group_id to product count
+     */
+    public java.util.Map<Integer, Integer> countProductsByGroup() {
+        java.util.Map<Integer, Integer> counts = new java.util.HashMap<>();
+        String sql = "SELECT group_id, COUNT(*) as count FROM product GROUP BY group_id";
+        
+        try (Connection conn = DatabaseConnectionManager.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                counts.put(rs.getInt("group_id"), rs.getInt("count"));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error counting products by group: " + e.getMessage());
+        }
+        
+        return counts;
+    }
 }
 

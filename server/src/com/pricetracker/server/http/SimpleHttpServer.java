@@ -52,6 +52,9 @@ public class SimpleHttpServer {
         // NEW: Product detail endpoint
         server.createContext("/product-detail", this::handleProductDetail);
         
+        // NEW: Categories endpoint for category page
+        server.createContext("/categories", this::handleCategories);
+        
         server.setExecutor(null); // creates a default executor
         server.start();
         
@@ -59,6 +62,7 @@ public class SimpleHttpServer {
         System.out.println("  Frontend can now connect via: http://localhost:" + HTTP_PORT + "/search");
         System.out.println("  Frontend can also access deals via: http://localhost:" + HTTP_PORT + "/deals");
         System.out.println("  Frontend can also access product detail via: http://localhost:" + HTTP_PORT + "/product-detail");
+        System.out.println("  Frontend can also access categories via: http://localhost:" + HTTP_PORT + "/categories");
     }
 
     private void handleSearch(HttpExchange exchange) throws IOException {
@@ -93,14 +97,18 @@ public class SimpleHttpServer {
 
             JSONObject requestJson = new JSONObject(requestBody);
             String action = requestJson.getString("action");
-            String query = requestJson.getString("query");
-
+            
             JSONObject responseJson;
 
             if ("SEARCH_BY_URL".equals(action)) {
+                String query = requestJson.getString("query");
                 responseJson = handleSearchByUrl(query);
             } else if ("SEARCH_BY_NAME".equals(action)) {
+                String query = requestJson.getString("query");
                 responseJson = handleSearchByName(query);
+            } else if ("SEARCH_BY_CATEGORY".equals(action)) {
+                int groupId = requestJson.getInt("group_id");
+                responseJson = handleSearchByCategory(groupId);
             } else {
                 responseJson = new JSONObject();
                 responseJson.put("success", false);
@@ -228,6 +236,48 @@ public class SimpleHttpServer {
                 
                 response.put("success", true);
                 response.put("count", products.size());
+                response.put("products", productsArray);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("error", "Lỗi hệ thống: " + e.getMessage());
+        }
+        
+        return response;
+    }
+    
+    /**
+     * Handle SEARCH_BY_CATEGORY request
+     * Returns all products in a specific category/group
+     */
+    private JSONObject handleSearchByCategory(int groupId) {
+        JSONObject response = new JSONObject();
+        
+        try {
+            System.out.println("🔍 Searching by category (group_id): " + groupId);
+            
+            List<Product> products = productDAO.getProductsByGroupId(groupId);
+            String groupName = productGroupDAO.getGroupNameById(groupId);
+            
+            if (products.isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Chưa có sản phẩm nào trong danh mục này.");
+            } else {
+                System.out.println("✓ Found " + products.size() + " products in group: " + groupName);
+                
+                JSONArray productsArray = new JSONArray();
+                
+                for (Product product : products) {
+                    PriceHistory currentPrice = priceHistoryDAO.getCurrentPrice(product.getProductId());
+                    
+                    productsArray.put(buildProductJSON(product, currentPrice, groupName));
+                }
+                
+                response.put("success", true);
+                response.put("count", products.size());
+                response.put("category_name", groupName);
                 response.put("products", productsArray);
             }
             
@@ -572,6 +622,85 @@ public class SimpleHttpServer {
         }
         
         return json;
+    }
+    
+    /**
+     * NEW: Handle categories endpoint - Get all product groups with counts
+     */
+    private void handleCategories(HttpExchange exchange) throws IOException {
+        // Add CORS headers
+        Headers headers = exchange.getResponseHeaders();
+        headers.add("Access-Control-Allow-Origin", "*");
+        headers.add("Access-Control-Allow-Methods", "GET, OPTIONS");
+        headers.add("Access-Control-Allow-Headers", "Content-Type");
+        headers.add("Content-Type", "application/json; charset=UTF-8");
+
+        // Handle preflight OPTIONS request
+        if ("OPTIONS".equals(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(200, -1);
+            return;
+        }
+
+        try {
+            System.out.println("📥 Received categories request");
+
+            JSONObject responseJson = handleGetCategories();
+            
+            String response = responseJson.toString();
+            System.out.println("📤 Sending categories response");
+            sendResponse(exchange, 200, response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            String errorResponse = String.format(
+                "{\"success\": false, \"error\": \"Server error: %s\"}", 
+                e.getMessage().replace("\"", "\\\"")
+            );
+            sendResponse(exchange, 500, errorResponse);
+        }
+    }
+    
+    /**
+     * Get all categories with product counts
+     */
+    private JSONObject handleGetCategories() {
+        JSONObject response = new JSONObject();
+        
+        try {
+            // Get all groups
+            java.util.Map<Integer, String> groups = productGroupDAO.getAllGroups();
+            
+            // Get product counts
+            java.util.Map<Integer, Integer> counts = productDAO.countProductsByGroup();
+            
+            // Build categories array
+            JSONArray categoriesArray = new JSONArray();
+            
+            for (java.util.Map.Entry<Integer, String> entry : groups.entrySet()) {
+                int groupId = entry.getKey();
+                String groupName = entry.getValue();
+                int count = counts.getOrDefault(groupId, 0);
+                
+                JSONObject categoryJson = new JSONObject();
+                categoryJson.put("group_id", groupId);
+                categoryJson.put("group_name", groupName);
+                categoryJson.put("product_count", count);
+                
+                categoriesArray.put(categoryJson);
+            }
+            
+            response.put("success", true);
+            response.put("categories", categoriesArray);
+            
+            System.out.println("✓ Loaded " + categoriesArray.length() + " categories");
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("error", "Lỗi hệ thống: " + e.getMessage());
+        }
+        
+        return response;
     }
 
     public void stop() {
