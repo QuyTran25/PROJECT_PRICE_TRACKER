@@ -52,14 +52,14 @@ function displayCategories(categories) {
     
     // Category icon mapping
     const categoryIcons = {
-        1: 'fa-mobile',           // Điện tử
-        2: 'fa-plug',             // Điện gia dụng
-        3: 'fa-shirt',            // Thời trang
-        4: 'fa-spray-can',        // Làm đẹp
-        5: 'fa-book',             // Sách
-        6: 'fa-baby',             // Đồ chơi
-        7: 'fa-dumbbell',         // Thể thao
-        8: 'fa-star'              // Sản phẩm mới
+        1: 'fa-mobile',             // Điện thoại
+        2: 'fa-laptop',             // Laptop và thiết bị văn phòng
+        3: 'fa-mars',              // Thời trang nam
+        4: 'fa-venus',              // Thời trang nữ 
+        5: 'fa-plug',               // Đồ điện tử gia dụng
+        6: 'fa-spray-can-sparkles', // Sản phẩm làm đẹp
+        7: 'fa-box',                // Thực phẩm đóng gói
+        8: 'fa-blender'             // Thiết bị gia dụng
     };
     
     const categoryColors = {
@@ -76,8 +76,21 @@ function displayCategories(categories) {
     // Sort categories by group_id
     categories.sort((a, b) => a.group_id - b.group_id);
     
+    // Calculate total products
+    const totalProducts = categories.reduce((sum, cat) => sum + cat.product_count, 0);
+    
+    // Build HTML with title
+    let html = `
+        <p style="color: #EC4899; font-family: 'roboto', sans-serif; font-weight: bold; font-size: 32px; margin: 50px 0 20px 0; text-align: center;">
+            Danh mục sản phẩm
+        </p>
+        <p style="color: #4B5563; font-family: 'inter', sans-serif; font-weight: lighter; font-size: 16px; margin: 0 0 20px 0; text-align: center;">
+            Khám phá hơn ${totalProducts.toLocaleString('vi-VN')} sản phẩm được theo dõi giá trong ${categories.length} danh mục khác nhau
+        </p>
+        <p id="frame_danhmuc">
+    `;
+    
     // Group into rows of 4
-    let html = '';
     for (let i = 0; i < categories.length; i += 4) {
         const rowCategories = categories.slice(i, i + 4);
         
@@ -102,6 +115,8 @@ function displayCategories(categories) {
         
         html += '</div>';
     }
+    
+    html += '</p>'; // Close frame_danhmuc
     
     container.innerHTML = html;
     
@@ -137,8 +152,10 @@ async function loadCategoryProducts(groupId, groupName, productCount) {
         productCountText.textContent = `${productCount} sản phẩm`;
         productsGrid.innerHTML = '<p style="text-align: center; padding: 40px; color: #6B7280;">Đang tải sản phẩm...</p>';
         
-        // Scroll to product section
-        productSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Scroll to product display section
+        setTimeout(() => {
+            productSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
         
         const response = await fetch(`http://${SERVER_HOST}:${SERVER_PORT}/search`, {
             method: 'POST',
@@ -159,7 +176,10 @@ async function loadCategoryProducts(groupId, groupName, productCount) {
         console.log('✅ Products loaded:', data);
         
         if (data.success && data.products && data.products.length > 0) {
+            currentProducts = data.products; // Store for sorting
             displayProducts(data.products);
+            // Reset sort select to default
+            document.getElementById('sort-select').value = 'default';
         } else {
             productsGrid.innerHTML = `
                 <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px;">
@@ -243,6 +263,38 @@ function displayProducts(products) {
     });
     
     productsGrid.innerHTML = html;
+}
+
+// Store current products for sorting
+let currentProducts = [];
+
+/**
+ * Sort products based on selected option
+ */
+function sortProducts() {
+    const sortSelect = document.getElementById('sort-select');
+    const sortValue = sortSelect.value;
+    
+    console.log('🔄 Sorting products by:', sortValue);
+    
+    let sortedProducts = [...currentProducts];
+    
+    switch(sortValue) {
+        case 'price-asc':
+            sortedProducts.sort((a, b) => (a.price || 0) - (b.price || 0));
+            break;
+        case 'price-desc':
+            sortedProducts.sort((a, b) => (b.price || 0) - (a.price || 0));
+            break;
+        case 'discount':
+            sortedProducts.sort((a, b) => (b.discount_percent || 0) - (a.discount_percent || 0));
+            break;
+        default:
+            // Keep original order
+            break;
+    }
+    
+    displayProducts(sortedProducts);
 }
 
 /**

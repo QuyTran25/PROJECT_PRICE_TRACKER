@@ -25,7 +25,7 @@
     left: 73%;
     transform: translate(-50%, -50%);
     z-index: 10;
-    pointer-events: none;
+    cursor: pointer;
 }
 
 #trenhinh p {
@@ -38,6 +38,12 @@
     font-family: 'inter', sans-serif;
     font-weight: 600;
     box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+#trenhinh:hover p {
+    background-color: #a00635;
+    transform: scale(1.05);
 }
 
 #trenhinh:hover p {
