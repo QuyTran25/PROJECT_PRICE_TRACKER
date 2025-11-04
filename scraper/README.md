@@ -1,6 +1,6 @@
 # 🤖 HƯỚNG DẪN SỬ DỤNG - AUTO SCRAPER
 
-> **Mục đích:** Tự động cào dữ liệu giá từ Tiki 3 lần/ngày (8h, 16h, 0h)
+> **Mục đích:** Tự động cào dữ liệu giá từ **Tiki** và **Lazada** 3 lần/ngày (8h, 16h, 0h)
 
 ---
 
@@ -20,7 +20,8 @@ notepad config.ini  # Sửa thông tin email, database
 python check_db.py
 
 # Bước 4: Chạy thử scraper
-run_scraper.bat
+run_scraper.bat             # Cào Tiki
+run_scraper_lazada.bat      # Cào Lazada
 ```
 
 ### 2️⃣ **Cài Task Scheduler (Tự động):**
@@ -68,10 +69,12 @@ Sau mỗi lần chạy, email sẽ được gửi đến:
 
 ```
 scraper/
-├── scraper.py              # Script chính cào dữ liệu
+├── scraper.py              # Script cào Tiki (Tầng 1)
+├── scraper_lazada.py       # Script cào Lazada (Tầng 1)
 ├── check_db.py             # Kiểm tra MySQL
 ├── send_email.py           # Gửi email thông báo
-├── run_scraper.bat         # Script tổng hợp
+├── run_scraper.bat         # Chạy scraper Tiki
+├── run_scraper_lazada.bat  # Chạy scraper Lazada
 ├── install_scheduler.bat   # Cài Task Scheduler
 ├── check_scheduler.bat     # Kiểm tra Task Scheduler
 ├── task_scheduler.xml      # Template Task Scheduler
@@ -153,8 +156,13 @@ powershell Get-Content logs\scraper_*.log -Tail 50
 
 **Chạy thủ công:**
 ```bash
-python scraper.py           # Chỉ cào
-run_scraper.bat            # Cào + gửi email
+# Tiki
+python scraper.py           # Chỉ cào Tiki
+run_scraper.bat            # Cào Tiki + gửi email
+
+# Lazada
+python scraper_lazada.py    # Chỉ cào Lazada
+run_scraper_lazada.bat     # Cào Lazada + gửi email
 ```
 
 **Chạy ngay không chờ lịch:**
@@ -174,4 +182,29 @@ schtasks /Change /TN "PriceTracker_AutoScraper" /ENABLE
 
 ---
 
+## 🆕 TÍNH NĂNG MỚI: LAZADA SCRAPER
+
+### Đặc điểm:
+- ✅ **Dữ liệu 100% thật** từ Lazada.vn (đã verify)
+- ✅ **Image URL đầy đủ** cho tất cả sản phẩm
+- ✅ **Kiến trúc 2-tầng** giống Tiki:
+  - **Tầng 1 (Python):** Background scraping - `scraper_lazada.py`
+  - **Tầng 2 (Java):** On-demand scraping - `LazadaScraperUtil.java`
+- ✅ **Deal type detection:** Flash Sale, HOT Deal, Trending
+- ✅ **Retry mechanism:** 3 attempts, 60s delay
+- ✅ **Database logging:** scrape_log, error_log
+
+### So sánh Tiki vs Lazada:
+
+| Tính năng           | Tiki                | Lazada              |
+|---------------------|---------------------|---------------------|
+| Data source         | API (JSON)          | HTML parsing (Regex)|
+| Price extraction    | ✅ 100%             | ✅ 100%             |
+| Image URL           | ✅ Đầy đủ           | ✅ Đầy đủ           |
+| Deal detection      | ✅ 4 loại           | ✅ 4 loại           |
+| 2-tier architecture | ✅ Python + Java    | ✅ Python + Java    |
+
+---
+
 **Phát triển bởi:** Nhóm 19 - Bài tập lớn Lập trình mạng  
+**Cập nhật:** 04/11/2025 - Thêm Lazada scraper với đầy đủ tính năng
