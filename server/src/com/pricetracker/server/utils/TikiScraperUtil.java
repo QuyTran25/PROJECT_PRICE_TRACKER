@@ -249,11 +249,11 @@ public class TikiScraperUtil {
     /**
      * Map category string to group_id
      * @param category Category name from Tiki
-     * @return group_id (1-8, default 8 for "Sản phẩm mới")
+     * @return group_id (1-8 for matched categories, 9 for "Sản phẩm mới")
      */
     public static int mapCategoryToGroupId(String category) {
         if (category == null || category.isEmpty()) {
-            return 8; // Sản phẩm mới
+            return 9; // Sản phẩm mới (group 9)
         }
         
         String lowerCategory = category.toLowerCase();
@@ -265,6 +265,6 @@ public class TikiScraperUtil {
             }
         }
         
-        return 8; // Default: Sản phẩm mới
+        return 9; // Default: Sản phẩm mới (group 9)
     }
 }

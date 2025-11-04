@@ -61,7 +61,7 @@ public class ProductGroupDAO {
     /**
      * Get group_id by group name (case-insensitive)
      * @param groupName The group name to search for
-     * @return group_id if found, or 8 (Sản phẩm mới) if not found
+     * @return group_id if found, or 9 (Sản phẩm mới) if not found
      */
     public int getGroupIdByName(String groupName) {
         String sql = "SELECT group_id FROM product_group WHERE LOWER(group_name) = LOWER(?)";
@@ -80,6 +80,6 @@ public class ProductGroupDAO {
             System.err.println("Error getting group_id by name: " + e.getMessage());
         }
         
-        return 8; // Default to "Sản phẩm mới"
+        return 9; // Default to "Sản phẩm mới" (group 9)
     }
 }

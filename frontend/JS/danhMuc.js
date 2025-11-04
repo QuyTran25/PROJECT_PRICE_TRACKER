@@ -59,7 +59,8 @@ function displayCategories(categories) {
         5: 'fa-plug',               // Đồ điện tử gia dụng
         6: 'fa-spray-can-sparkles', // Sản phẩm làm đẹp
         7: 'fa-box',                // Thực phẩm đóng gói
-        8: 'fa-blender'             // Thiết bị gia dụng
+        8: 'fa-blender',            // Thiết bị gia dụng
+        9: 'fa-star'            // Sản phẩm mới (do user thêm)
     };
     
     const categoryColors = {
@@ -70,7 +71,8 @@ function displayCategories(categories) {
         5: { color: '#EF4444', bg: '#FEE2E2' },
         6: { color: '#EC4899', bg: '#FCE7F3' },
         7: { color: '#14B8A6', bg: '#CCFBF1' },
-        8: { color: '#8B5CF6', bg: '#EDE9FE' }
+        8: { color: '#8B5CF6', bg: '#EDE9FE' },
+        9: { color: '#10B981', bg: '#D1FAE5' }  // Sản phẩm mới - màu xanh lá
     };
     
     // Sort categories by group_id
