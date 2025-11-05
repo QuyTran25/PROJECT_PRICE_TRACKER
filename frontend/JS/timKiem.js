@@ -254,10 +254,10 @@ function displayResults(response) {
             resultsInfo.style.display = 'block';
         }
         
-        // Group products into rows of 3
+        // Group products into rows of 4
         let rowsHTML = '';
-        for (let i = 0; i < response.products.length; i += 3) {
-            const rowProducts = response.products.slice(i, i + 3);
+        for (let i = 0; i < response.products.length; i += 4) {
+            const rowProducts = response.products.slice(i, i + 4);
             const cardsHTML = rowProducts.map(product => 
                 renderProductCard(product, false)
             ).join('');
