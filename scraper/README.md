@@ -1,6 +1,7 @@
 # 🤖 HƯỚNG DẪN SỬ DỤNG - AUTO SCRAPER
 
-> **Mục đích:** Tự động cào dữ liệu giá từ Tiki 3 lần/ngày (8h, 16h, 0h)
+> **Mục đích:** Tự động cào dữ liệu giá từ Tiki **2 lần/ngày** (8h, 16h)  
+> **⚠️ Đã BỎ lịch 0h đêm** để tránh lỗi MySQL khi tắt máy
 
 ---
 
@@ -31,7 +32,13 @@ run_scraper.bat
 install_scheduler.bat
 ```
 
-**Cách 2: Thủ công (2 phút)**
+**Cách 2: Cập nhật lịch (nếu đã cài rồi)**
+```bash
+# Click chuột phải > Run with PowerShell as Administrator
+update_schedule.ps1
+```
+
+**Cách 3: Thủ công (2 phút)**
 1. Nhấn `Win + R` → gõ `taskschd.msc`
 2. Action → Import Task → chọn `task_scheduler.xml`
 3. Tab Actions → Edit → Sửa `FULL_PATH_TO_SCRAPER` thành `d:\PROJECT_PRICE_TRACKER\scraper`
@@ -47,9 +54,17 @@ check_scheduler.bat
 
 ## 📅 LỊCH CHẠY
 
-**Hôm nay (04/11/2025):** 8h, **13h** (test), 16h, 0h  
-**Từ ngày mai (05/11 - 29/11/2025):** 8h, 16h, 0h  
+**Từ ngày 05/11 - 29/11/2025:**
+- ✅ **08:00 sáng** (mỗi ngày)
+- ✅ **16:00 chiều** (mỗi ngày)
+- ❌ ~~00:00 đêm~~ (ĐÃ BỎ để tránh lỗi MySQL khi tắt máy)
+
 **Sau 29/11:** Tắt tự động
+
+**⚠️ LÝ DO BỎ LỊCH 0H:**
+- Nguy cơ máy tắt đột ngột khi ngủ → MySQL bị hỏng
+- 2 lần/ngày đủ để theo dõi giá
+- An toàn hơn cho database
 
 ---
 
@@ -70,16 +85,20 @@ Sau mỗi lần chạy, email sẽ được gửi đến:
 scraper/
 ├── scraper.py              # Script chính cào dữ liệu
 ├── check_db.py             # Kiểm tra MySQL
+├── repair_mysql.py         # Sửa MySQL khi bị hỏng
 ├── send_email.py           # Gửi email thông báo
 ├── run_scraper.bat         # Script tổng hợp
 ├── install_scheduler.bat   # Cài Task Scheduler
+├── update_schedule.ps1     # Cập nhật lịch Task Scheduler
 ├── check_scheduler.bat     # Kiểm tra Task Scheduler
-├── task_scheduler.xml      # Template Task Scheduler
+├── task_scheduler.xml      # Template Task Scheduler (2 lần/ngày)
 ├── config.ini.example      # Template cấu hình (push Git)
 ├── config.ini              # Cấu hình thật (KHÔNG push)
 ├── requirements.txt        # Python dependencies
 ├── initial_setup.py        # Setup ban đầu
-└── logs/                   # Log files
+├── logs/                   # Log files
+├── backups/                # MySQL backups (tự động)
+└── MYSQL_REPAIR_WARNING.md # Cảnh báo về REPAIR TABLE
 ```
 
 ---
