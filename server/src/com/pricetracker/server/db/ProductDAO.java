@@ -184,6 +184,10 @@ public class ProductDAO {
             return null;
         }
         
+        // IMPORTANT: Force group_id = 9 for user-added products
+        product.setGroupId(9);
+        System.out.println("🆕 User-added product, setting group_id = 9 (Sản phẩm mới)");
+        
         // Insert into database
         String sql = "INSERT INTO product (group_id, name, brand, url, image_url, description, source) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?)";

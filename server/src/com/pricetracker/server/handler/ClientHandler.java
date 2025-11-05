@@ -5,9 +5,12 @@ import com.pricetracker.models.Product;
 import com.pricetracker.server.db.PriceHistoryDAO;
 import com.pricetracker.server.db.ProductDAO;
 import com.pricetracker.server.db.ProductGroupDAO;
+import com.pricetracker.security.AESUtil;
+import com.pricetracker.security.KeyManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import javax.crypto.SecretKey;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -33,6 +36,9 @@ public class ClientHandler implements Runnable {
     private BufferedReader in;
     private PrintWriter out;
     
+    // Encryption key
+    private SecretKey encryptionKey;
+    
     /**
      * Constructor
      * @param clientSocket Socket kết nối với client
@@ -41,6 +47,15 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket clientSocket, int clientId) {
         this.clientSocket = clientSocket;
         this.clientId = clientId;
+        
+        // Load encryption key từ environment variable
+        try {
+            this.encryptionKey = KeyManager.getKey();
+            System.out.println("    [Client #" + clientId + "] 🔐 Encryption enabled");
+        } catch (Exception e) {
+            System.err.println("    [Client #" + clientId + "] ⚠️ Encryption disabled: " + e.getMessage());
+            this.encryptionKey = null;
+        }
     }
     
     /**
@@ -56,24 +71,39 @@ public class ClientHandler implements Runnable {
             initializeStreams();
             
             // Vòng lặp xử lý các yêu cầu từ client
-            // Client có thể gửi nhiều yêu cầu trong cùng một kết nối
-            String request;
-            while ((request = in.readLine()) != null) {
-                
-                // Bước 1: Nhận yêu cầu từ client
-                System.out.println("    [Client #" + clientId + "] Nhận yêu cầu: " + request);
+            String encryptedRequest;
+            while ((encryptedRequest = in.readLine()) != null) {
                 
                 try {
+                    // Bước 1: Giải mã request từ client
+                    String request;
+                    if (encryptionKey != null) {
+                        request = AESUtil.decrypt(encryptedRequest, encryptionKey);
+                        System.out.println("    [Client #" + clientId + "] 🔓 Decrypted request: " + request);
+                    } else {
+                        request = encryptedRequest;
+                        System.out.println("    [Client #" + clientId + "] Nhận yêu cầu: " + request);
+                    }
+                    
                     // Bước 2: Xử lý yêu cầu
                     String response = processRequest(request);
                     
-                    // Bước 3: Gửi phản hồi cho client
-                    sendResponse(response);
+                    // Bước 3: Mã hóa response
+                    String responseToSend;
+                    if (encryptionKey != null) {
+                        responseToSend = AESUtil.encrypt(response, encryptionKey);
+                        System.out.println("    [Client #" + clientId + "] 🔒 Response encrypted");
+                    } else {
+                        responseToSend = response;
+                    }
+                    
+                    // Bước 4: Gửi phản hồi cho client
+                    sendResponse(responseToSend);
                     System.out.println("    [Client #" + clientId + "] Đã gửi phản hồi");
                     
                 } catch (Exception e) {
                     System.err.println("    [Client #" + clientId + "] Lỗi xử lý yêu cầu: " + e.getMessage());
-                    sendErrorResponse("Lỗi xử lý yêu cầu: " + e.getMessage());
+                    sendErrorResponse("ERROR|" + e.getMessage());
                 }
             }
             

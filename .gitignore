@@ -8,6 +8,15 @@ config.ini
 *.env
 .env
 
+# Security - Encryption keys (QUAN TRỌNG!)
+*.key
+*.jks
+*.keystore
+security.properties
+security.conf
+secrets/
+.keys/
+
 # Log files
 scraper/logs/
 logs/
