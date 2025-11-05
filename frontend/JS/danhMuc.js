@@ -147,12 +147,12 @@ async function loadCategoryProducts(groupId, groupName, productCount) {
         const productSection = document.getElementById('product-display-section');
         const categoryTitle = document.getElementById('category-title');
         const productCountText = document.getElementById('product-count-text');
-        const productsGrid = document.getElementById('products-grid');
+        const productsContainer = document.getElementById('products-container');
         
         productSection.style.display = 'block';
         categoryTitle.textContent = groupName;
         productCountText.textContent = `${productCount} sản phẩm`;
-        productsGrid.innerHTML = '<p style="text-align: center; padding: 40px; color: #6B7280;">Đang tải sản phẩm...</p>';
+        productsContainer.innerHTML = '<p style="text-align: center; padding: 40px; color: #6B7280;">Đang tải sản phẩm...</p>';
         
         // Scroll to product display section
         setTimeout(() => {
@@ -183,88 +183,114 @@ async function loadCategoryProducts(groupId, groupName, productCount) {
             // Reset sort select to default
             document.getElementById('sort-select').value = 'default';
         } else {
-            productsGrid.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px;">
-                    <i class="fa-solid fa-box-open" style="font-size: 4rem; color: #D1D5DB; margin-bottom: 20px;"></i>
-                    <h3 style="color: #4B5563; margin-bottom: 10px;">Không tìm thấy sản phẩm</h3>
-                    <p style="color: #9CA3AF;">Danh mục này hiện chưa có sản phẩm nào.</p>
-                </div>
-            `;
+            displayProducts([]);
         }
         
     } catch (error) {
         console.error('❌ Error loading products:', error);
-        const productsGrid = document.getElementById('products-grid');
-        productsGrid.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #EF4444;">
+        const productsContainer = document.getElementById('products-container');
+        productsContainer.innerHTML = `
+            <div style="text-align: center; padding: 60px 20px; color: #EF4444;">
                 <i class="fa-solid fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 15px;"></i>
-                <p>Lỗi khi tải sản phẩm. Vui lòng thử lại!</p>
+                <h3>Lỗi khi tải sản phẩm</h3>
+                <p>Vui lòng thử lại!</p>
             </div>
         `;
     }
 }
 
 /**
- * Display products in grid
+ * Display products in grid (4 products per row like giamGia page)
  */
 function displayProducts(products) {
-    const productsGrid = document.getElementById('products-grid');
+    const productsContainer = document.getElementById('products-container');
     
-    let html = '';
-    products.forEach(product => {
-        const price = parseFloat(product.price || 0);
-        const originalPrice = parseFloat(product.original_price || 0);
-        const discountPercent = product.discount_percent || 0;
-        const formattedPrice = price.toLocaleString('vi-VN') + 'đ';
-        const formattedOriginalPrice = originalPrice.toLocaleString('vi-VN') + 'đ';
-        
-        html += `
-            <div class="product-card" style="
-                background: white;
-                border-radius: 12px;
-                padding: 16px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-                transition: all 0.3s ease;
-                cursor: pointer;
-            " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.12)';"
-               onmouseout="this.style.transform=''; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.08)';"
-               onclick="window.location.href='Trangchitiet.html?id=${product.product_id}'">
-                <div style="width: 100%; height: 200px; background: #F3F4F6; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                    ${product.image_url ? 
-                        `<img src="${product.image_url}" alt="${product.name}" style="max-width: 100%; max-height: 100%; object-fit: contain;">` :
-                        `<i class="fa-solid fa-image" style="font-size: 3rem; color: #D1D5DB;"></i>`
-                    }
-                </div>
-                <h3 style="
-                    color: #1F2937;
-                    font-size: 14px;
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
-                    overflow: hidden;
-                    line-height: 1.4;
-                    min-height: 40px;
-                ">${product.name}</h3>
-                <div style="margin-bottom: 8px;">
-                    <p style="color: #EC4899; font-size: 18px; font-weight: bold; display: inline;">${formattedPrice}</p>
-                    ${discountPercent > 0 ? `
-                        <span style="background: #FEE2E2; color: #DC2626; font-size: 12px; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: 600;">-${discountPercent}%</span>
-                    ` : ''}
-                </div>
-                ${originalPrice > price ? `
-                    <p style="color: #9CA3AF; font-size: 14px; text-decoration: line-through; margin-bottom: 8px;">${formattedOriginalPrice}</p>
-                ` : ''}
-                <div style="display: flex; align-items: center; gap: 4px; color: #6B7280; font-size: 12px;">
-                    <i class="fa-solid fa-store"></i>
-                    <span>Tiki</span>
-                </div>
+    if (!products || products.length === 0) {
+        productsContainer.innerHTML = `
+            <div style="text-align: center; padding: 60px 20px; color: #666; grid-column: 1 / -1;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">🛍️</div>
+                <h3 style="color: #CC0843; font-size: 1.5rem; margin-bottom: 15px;">Không có sản phẩm</h3>
+                <p style="font-size: 1.1rem; color: #888;">Hiện tại danh mục này chưa có sản phẩm nào.</p>
             </div>
         `;
-    });
+        return;
+    }
     
-    productsGrid.innerHTML = html;
+    productsContainer.innerHTML = '';
+    
+    // Tạo các hàng, mỗi hàng 4 sản phẩm
+    const PRODUCTS_PER_ROW = 4;
+    for (let i = 0; i < products.length; i += PRODUCTS_PER_ROW) {
+        const row = document.createElement('div');
+        row.className = 'hang';
+        
+        for (let j = 0; j < PRODUCTS_PER_ROW; j++) {
+            const productIndex = i + j;
+            if (productIndex < products.length) {
+                row.innerHTML += createProductHTML(products[productIndex]);
+            } else {
+                // Thêm div rỗng để giữ layout
+                row.innerHTML += '<div class="mathang" style="visibility:hidden;"></div>';
+            }
+        }
+        
+        productsContainer.appendChild(row);
+    }
+}
+
+/**
+ * Create product HTML (giống trang giảm giá)
+ */
+function createProductHTML(product) {
+    const price = parseFloat(product.price || 0);
+    const originalPrice = parseFloat(product.original_price || 0);
+    const discount = product.discount_percent || 0;
+    const formattedPrice = formatPrice(price);
+    const formattedOriginalPrice = formatPrice(originalPrice);
+    const savings = formatPrice(originalPrice - price);
+    
+    return `
+        <div class="mathang" onclick="window.location.href='Trangchitiet.html?id=${product.product_id}'" style="cursor: pointer;">
+            <div class="hinh">
+                <img src="${product.image_url || 'https://via.placeholder.com/300x300'}" 
+                     alt="${product.name}"
+                     onerror="this.src='https://via.placeholder.com/300x300?text=No+Image'">
+                ${discount > 0 ? `
+                    <div class="tren_hinh">
+                        <div class="phan_tram">-${discount}%</div>
+                    </div>
+                ` : ''}
+            </div>
+            <div class="thong_tin">
+                <div class="nhom_sp">${product.group_name || 'Sản phẩm'}</div>
+                <div class="ten_sp">${truncateText(product.name, 50)}</div>
+                <div class="gia_sp"><span>${formattedPrice}</span> đ</div>
+                ${originalPrice > price ? `
+                    <div class="tiet_kiem">
+                        <span class="gia_goc">${formattedOriginalPrice} đ</span>
+                        <p class="khau_tru">Tiết kiệm <span>${savings}</span> đ</p>
+                    </div>
+                ` : ''}
+                <button class="chi_tiet" onclick="event.stopPropagation(); window.location.href='Trangchitiet.html?id=${product.product_id}'">Xem chi tiết</button>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Format giá tiền
+ */
+function formatPrice(price) {
+    if (!price) return '0';
+    return Math.round(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+/**
+ * Cắt ngắn text
+ */
+function truncateText(text, maxLen) {
+    if (!text) return '';
+    return text.length > maxLen ? text.substring(0, maxLen) + '...' : text;
 }
 
 // Store current products for sorting

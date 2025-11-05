@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../CSS/main.css">
     <link rel="stylesheet" href="../CSS/danhMuc.css">
+    <link rel="stylesheet" href="../CSS/giamGia.css">
     <title>danhMuc</title>
 </head>
 <body>
@@ -167,8 +168,8 @@
         </div>
         
         <!-- Product display section -->
-        <div id="product-display-section" style="display: none; padding: 40px 80px; background-color: #F9FAFB;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <div id="product-display-section" style="display: none; padding: 50px 100px 0 100px; background-color: #F9FAFB;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px;">
                 <div>
                     <h2 id="category-title" style="color: #1F2937; font-family: 'roboto', sans-serif; font-size: 28px; font-weight: bold; margin-bottom: 10px;"></h2>
                     <p id="product-count-text" style="color: #6B7280; font-family: 'inter', sans-serif; font-size: 16px;"></p>
@@ -193,8 +194,8 @@
                     </select>
                 </div>
             </div>
-            <div id="products-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 24px;">
-                <!-- Products will be loaded here -->
+            <div id="products-container" class="sanpham">
+                <!-- Products will be loaded here in rows of 4 -->
             </div>
         </div>
     </div>
