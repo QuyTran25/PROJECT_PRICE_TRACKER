@@ -50,27 +50,29 @@ async function loadAllDeals() {
         if (data.success && data.products && data.products.length > 0) {
             const grouped = groupByDealType(data.products);
             
-            // Lưu dữ liệu đầy đủ
-            allProductsData.deal_hot = data.products;
             allProductsData.flash_sale = grouped.FLASH_SALE;
             allProductsData.hot_deal = grouped.HOT_DEAL;
             
             // Load vào từng section (trừ trending)
-            loadSection('#deal_hot', 'deal_hot', false);
             loadSection('#flash_sale', 'flash_sale', false);
             loadSection('#hot_deal', 'hot_deal', false);
-            
-            // Cập nhật tiêu đề cho các section
-            updateSectionTitles();
-            
-            // Cập nhật số lượng trong button
-            updateButtonCounts(grouped, data.products.length);
         } else {
             showNoData();
         }
         
         // Load TRENDING riêng (mỗi danh mục 1 sản phẩm giảm giá sâu nhất)
         await loadTrendingDeals();
+        
+        // Ghép "Deals Hot" = Flash Sale + Hot Deal + Trending
+        allProductsData.deal_hot = [
+            ...allProductsData.flash_sale,
+            ...allProductsData.hot_deal,
+            ...allProductsData.trending
+        ];
+        loadSection('#deal_hot', 'deal_hot', false);
+        
+        // Cập nhật số lượng trong button SAU KHI đã load hết
+        updateButtonCounts();
         
     } catch (error) {
         console.error('❌ Lỗi:', error);
@@ -98,38 +100,19 @@ async function loadTrendingDeals() {
             allProductsData.trending = data.products;
             loadSection('#trending', 'trending', false);
         } else {
-            // Không có trending products
             allProductsData.trending = [];
             loadSection('#trending', 'trending', false);
         }
+        
+        // Cập nhật count sau khi load trending xong
+        updateButtonCounts();
+        
     } catch (error) {
         console.error('❌ Lỗi load trending:', error);
         allProductsData.trending = [];
         loadSection('#trending', 'trending', false);
+        updateButtonCounts();
     }
-}
-
-/**
- * Cập nhật tiêu đề cho các section theo logic mới
- */
-function updateSectionTitles() {
-    const titles = {
-        'deal_hot': 'Tất cả deals hot',
-        'flash_sale': 'Flash Sale',
-        'hot_deal': 'Hot Deals',
-        'trending': 'Trending'
-    };
-    
-    Object.keys(titles).forEach(sectionKey => {
-        const sectionId = sectionKey.replace('_', '');
-        const section = document.querySelector(`#${sectionKey}`);
-        if (section) {
-            const titleElement = section.querySelector('.ten_deal');
-            if (titleElement) {
-                titleElement.textContent = titles[sectionKey];
-            }
-        }
-    });
 }
 
 /**
@@ -301,7 +284,7 @@ function hideXemThemButton(section) {
 }
 
 /**
- * Tạo HTML cho 1 sản phẩm (giữ đúng cấu trúc gốc)
+ * Tạo HTML cho 1 sản phẩm 
  * Ảnh có kích thước cố định để không bị lệch
  */
 function createProductHTML(product) {
@@ -310,19 +293,29 @@ function createProductHTML(product) {
     const originalPrice = formatPrice(product.original_price);
     const savings = formatPrice(product.original_price - product.price);
     
-    // Xác định loại badge
-    let badgeClass = 'deal';
-    let badgeText = 'Hot Deal';
-    let badgeIcon = '<i class="fa-solid fa-bolt-lightning"></i>';
+    // Xác định loại badge dựa trên deal_type - CHỈ hiển thị nếu có deal thật
+    let badgeHTML = '';
     
     if (product.deal_type === 'FLASH_SALE') {
-        badgeClass = 'Sale';
-        badgeText = 'Flash Sale';
+        badgeHTML = `
+            <div class="nhan_deal Sale">
+                <i class="fa-solid fa-bolt-lightning"></i>
+                <span>Flash Sale</span>
+            </div>`;
+    } else if (product.deal_type === 'HOT_DEAL') {
+        badgeHTML = `
+            <div class="nhan_deal deal">
+                <i class="fa-solid fa-fire"></i>
+                <span>Hot Deal</span>
+            </div>`;
     } else if (product.deal_type === 'TRENDING') {
-        badgeClass = 'Trending';
-        badgeText = 'Trending';
-        badgeIcon = '<i class="fa-solid fa-arrow-trend-up"></i>';
+        badgeHTML = `
+            <div class="nhan_deal Trending">
+                <i class="fa-solid fa-arrow-trend-up"></i>
+                <span>Trending</span>
+            </div>`;
     }
+    // NORMAL: không hiển thị badge
     
     return `
         <div class="mathang" data-url="${product.url || ''}" data-product-id="${product.product_id}">
@@ -332,10 +325,7 @@ function createProductHTML(product) {
                      style="width: 100%; height: 300px; object-fit: cover; display: block;"
                      onerror="this.src='https://via.placeholder.com/300x300?text=No+Image'">
                 <div class="tren_hinh">
-                    <div class="nhan_deal ${badgeClass}">
-                        ${badgeIcon}
-                        <span>${badgeText}</span>
-                    </div>
+                    ${badgeHTML}
                     ${discount > 0 ? `<div class="phan_tram">-${discount}%</div>` : ''}
                 </div>
             </div>
@@ -343,10 +333,12 @@ function createProductHTML(product) {
                 <div class="nhom_sp">${product.group_name || 'Sản phẩm'}</div>
                 <div class="ten_sp">${truncate(product.name, 50)}</div>
                 <div class="gia_sp"><span>${price}</span> đ</div>
+                ${originalPrice && savings ? `
                 <div class="tiet_kiem">
                     <span class="gia_goc">${originalPrice} đ</span>
                     <p class="khau_tru">Tiết kiệm <span>${savings}</span> đ</p>
                 </div>
+                ` : ''}
                 <button class="chi_tiet">Xem chi tiết</button>
             </div>
         </div>
@@ -414,17 +406,24 @@ function setupFilterButtons() {
 /**
  * Cập nhật số lượng trong các button filter
  */
-function updateButtonCounts(grouped, totalCount) {
-    // Update với ID cụ thể từ HTML
+function updateButtonCounts() {
     const countAll = document.querySelector('#count-all');
     const countFlash = document.querySelector('#count-flash');
     const countHot = document.querySelector('#count-hot');
     const countTrending = document.querySelector('#count-trending');
     
+    // Đếm từ allProductsData (dữ liệu thực tế đã load)
+    const flashCount = allProductsData.flash_sale.length;
+    const hotCount = allProductsData.hot_deal.length;
+    const trendingCount = allProductsData.trending.length;
+    
+    // "Tất cả" = Tổng của 3 loại (KHÔNG bao gồm NORMAL)
+    const totalCount = flashCount + hotCount + trendingCount;
+    
     if (countAll) countAll.textContent = `(${totalCount})`;
-    if (countFlash) countFlash.textContent = `(${grouped.FLASH_SALE.length})`;
-    if (countHot) countHot.textContent = `(${grouped.HOT_DEAL.length})`;
-    if (countTrending) countTrending.textContent = `(${grouped.TRENDING ? grouped.TRENDING.length : 0})`;
+    if (countFlash) countFlash.textContent = `(${flashCount})`;
+    if (countHot) countHot.textContent = `(${hotCount})`;
+    if (countTrending) countTrending.textContent = `(${trendingCount})`;
 }
 
 /**

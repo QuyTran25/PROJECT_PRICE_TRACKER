@@ -277,86 +277,51 @@ public class ProductDAO {
     }
     
     /**
-     * NEW METHOD: Get products by deal type (for discount page)
-     * Logic sorting:
-     * - ALL: Giảm giá HOT NHẤT (% giảm cao nhất)
-     * - FLASH_SALE: VỪA MỚI GIẢM (recorded_at gần nhất)
-     * - HOT_DEAL: GIẢM SÂU (% giảm cao + giá trị tiết kiệm lớn)
-     * - TRENDING: MỖI DANH MỤC 1 SẢN PHẨM GIẢM GIÁ SÂU NHẤT
+     * Get products by deal type 
+     * Đơn giản: Chỉ query dựa trên deal_type có sẵn trong price_history
+     * (deal_type đã được Python scraper xác định khi cào dữ liệu)
      * 
      * @param dealType "FLASH_SALE", "HOT_DEAL", "TRENDING", or "ALL" for all deals
      * @return List of products with the specified deal type
      */
     public List<Product> getProductsByDealType(String dealType) {
         List<Product> results = new ArrayList<>();
-        
         String sql;
         
         if ("ALL".equals(dealType)) {
-            // TẤT CẢ DEALS HOT: Sản phẩm giảm giá HOT NHẤT (% giảm cao nhất)
-            sql = "SELECT DISTINCT p.*, ph.original_price, ph.price, ph.recorded_at " +
+            // ALL: Tất cả sản phẩm có giảm giá 
+            sql = "SELECT DISTINCT p.* " +
                   "FROM product p " +
                   "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
                   "WHERE ph.price_id IN (" +
                   "    SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
-                  ") AND ph.original_price > ph.price " +
+                  ") AND ph.deal_type IN ('FLASH_SALE', 'HOT_DEAL', 'TRENDING') " +
+                  "AND ph.original_price > ph.price " +
                   "ORDER BY ((ph.original_price - ph.price) / ph.original_price) DESC " +
-                  "LIMIT 100";
-                  
-        } else if ("FLASH_SALE".equals(dealType)) {
-            // FLASH SALE: VỪA MỚI GIẢM GIÁ (recorded_at mới nhất)
-            sql = "SELECT DISTINCT p.*, ph.original_price, ph.price, ph.recorded_at " +
-                  "FROM product p " +
-                  "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
-                  "WHERE ph.price_id IN (" +
-                  "    SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
-                  ") AND ph.deal_type = 'FLASH_SALE' AND ph.original_price > ph.price " +
-                  "ORDER BY ph.recorded_at DESC, ((ph.original_price - ph.price) / ph.original_price) DESC " +
-                  "LIMIT 100";
-                  
-        } else if ("HOT_DEAL".equals(dealType)) {
-            // HOT DEAL: GIẢM SÂU (kết hợp % giảm và giá trị tiết kiệm)
-            sql = "SELECT DISTINCT p.*, ph.original_price, ph.price, ph.recorded_at " +
-                  "FROM product p " +
-                  "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
-                  "WHERE ph.price_id IN (" +
-                  "    SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
-                  ") AND ph.deal_type = 'HOT_DEAL' AND ph.original_price > ph.price " +
-                  "ORDER BY (ph.original_price - ph.price) DESC, " +
-                  "         ((ph.original_price - ph.price) / ph.original_price) DESC " +
-                  "LIMIT 100";
+                  "LIMIT 200";
                   
         } else if ("TRENDING".equals(dealType)) {
-            // TRENDING: MỖI DANH MỤC 1 SẢN PHẨM GIẢM GIÁ SÂU NHẤT
-            // Logic: Lấy sản phẩm có % giảm giá cao nhất từ mỗi product_group
-            sql = "SELECT p.*, ph.original_price, ph.price, ph.recorded_at " +
+            // TRENDING: Lấy 1 sản phẩm trending mỗi danh mục
+            sql = "SELECT p.* " +
                   "FROM product p " +
                   "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
-                  "INNER JOIN (" +
-                  "    SELECT p2.group_id, " +
-                  "           MAX((ph2.original_price - ph2.price) / ph2.original_price) as max_discount " +
-                  "    FROM product p2 " +
-                  "    INNER JOIN price_history ph2 ON p2.product_id = ph2.product_id " +
-                  "    WHERE ph2.price_id IN (" +
-                  "        SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
-                  "    ) AND ph2.original_price > ph2.price " +
-                  "    GROUP BY p2.group_id" +
-                  ") AS best_per_group ON p.group_id = best_per_group.group_id " +
-                  "    AND ((ph.original_price - ph.price) / ph.original_price) = best_per_group.max_discount " +
                   "WHERE ph.price_id IN (" +
                   "    SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
-                  ") AND ph.original_price > ph.price " +
+                  ") AND ph.deal_type = 'TRENDING' " +
+                  "AND ph.original_price > ph.price " +
                   "GROUP BY p.group_id " +
                   "ORDER BY ((ph.original_price - ph.price) / ph.original_price) DESC " +
-                  "LIMIT 100";
+                  "LIMIT 20";
+                  
         } else {
-            // Fallback: Sort by discount percent
-            sql = "SELECT DISTINCT p.*, ph.original_price, ph.price, ph.recorded_at " +
+            // FLASH_SALE hoặc HOT_DEAL: Lấy theo deal_type
+            sql = "SELECT DISTINCT p.* " +
                   "FROM product p " +
                   "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
                   "WHERE ph.price_id IN (" +
                   "    SELECT MAX(price_id) FROM price_history GROUP BY product_id" +
-                  ") AND ph.deal_type = ? AND ph.original_price > ph.price " +
+                  ") AND ph.deal_type = ? " +
+                  "AND ph.original_price > ph.price " +
                   "ORDER BY ((ph.original_price - ph.price) / ph.original_price) DESC " +
                   "LIMIT 100";
         }
@@ -364,11 +329,8 @@ public class ProductDAO {
         try (Connection conn = DatabaseConnectionManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            // Chỉ set parameter nếu không phải các case đặc biệt
-            if (!"ALL".equals(dealType) && 
-                !"FLASH_SALE".equals(dealType) && 
-                !"HOT_DEAL".equals(dealType) && 
-                !"TRENDING".equals(dealType)) {
+            // Set parameter nếu không phải ALL hoặc TRENDING
+            if (!"ALL".equals(dealType) && !"TRENDING".equals(dealType)) {
                 stmt.setString(1, dealType);
             }
             
