@@ -1,13 +1,14 @@
 @echo off
 chcp 65001 >nul
 echo ================================================
-echo    🚀 PRICE TRACKER - HTTP SERVER STARTER
+echo    🚀 PRICE TRACKER - SERVER STARTER
+echo    SSL/TLS + HikariCP Connection Pool
 echo ================================================
 echo.
 
 cd /d "%~dp0server"
 
-echo [1/3] 📦 Compiling Java files...
+echo [1/4] 📦 Compiling Java files...
 echo.
 
 javac -encoding UTF-8 -d bin -cp "lib/*;../shared/src" ^
@@ -30,23 +31,41 @@ if %errorlevel% neq 0 (
 echo.
 echo ✅ Compilation successful!
 echo.
-echo [2/3] 🔍 Checking MySQL connection...
+
+echo [2/4] 🔐 Checking SSL certificates...
+if not exist "certs\server.keystore" (
+    echo ⚠️  SSL certificate not found!
+    echo Running certificate generation...
+    cd certs
+    call generate-cert.bat
+    call export-cert-for-client.bat
+    cd ..
+    echo ✅ SSL certificates generated!
+) else (
+    echo ✅ SSL certificates ready!
+)
+echo.
+
+echo [3/4] 🔍 Checking MySQL connection...
 echo Make sure XAMPP MySQL is running on port 3306
 echo.
 
-echo [3/3] 🌐 Starting HTTP Server...
+echo [4/4] 🚀 Starting SSL Server with HikariCP...
 echo.
 echo ================================================
 echo    ✨ SERVER IS STARTING...
 echo ================================================
 echo.
-echo 📡 Frontend can connect at: http://localhost:8080/search
-echo 🌐 Open your browser: http://127.0.0.1:5500/frontend/HTML/Trangchu.html
+echo � SSL/TLS: ENABLED (TLS 1.3 + 1.2)
+echo ⚡ HikariCP: Connection Pool Active
+echo 📡 Server Port: 8888 (Secure Socket)
+echo 🌐 HTTP Endpoint: http://localhost:8080
 echo.
 echo Press Ctrl+C to stop the server
 echo ================================================
 echo.
 
-java -cp "bin;lib/*;../shared/src" com.pricetracker.server.http.SimpleHttpServer
+REM Start PriceTrackerServer với SSL enabled
+java -Dssl.enabled=true -cp "bin;lib/*;../shared/src" com.pricetracker.server.core.PriceTrackerServer
 
 pause

@@ -23,7 +23,7 @@ public class SSLManager {
     private static final String KEYSTORE_TYPE = "JKS";
     
     // Default paths (có thể override bằng system properties)
-    private static final String DEFAULT_KEYSTORE_PATH = "server/certs/server.keystore";
+    private static final String DEFAULT_KEYSTORE_PATH = "certs/server.keystore";
     private static final String DEFAULT_KEYSTORE_PASSWORD = "pricetracker123";
     
     /**
