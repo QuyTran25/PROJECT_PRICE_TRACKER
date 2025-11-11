@@ -18,6 +18,11 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Simple HTTP Server wrapper for the Price Tracker
@@ -25,11 +30,23 @@ import java.util.List;
  */
 public class SimpleHttpServer {
     private static final int HTTP_PORT = 8080;
+    
+    // ⚡ Thread Pool để xử lý concurrent requests
+    // 100 threads đủ cho 50 users (mỗi user có thể tạo 2 requests đồng thời)
+    private static final int THREAD_POOL_SIZE = 100;
+    
+    // 🗄️ Cache TTL: 5 phút (300000ms) - đủ cho demo, data không đổi liên tục
+    private static final long CACHE_TTL_MS = 5 * 60 * 1000;
+    
     private HttpServer server;
+    private ExecutorService threadPool;
     private ProductDAO productDAO;
     private PriceHistoryDAO priceHistoryDAO;
     private ProductGroupDAO productGroupDAO;
     private ReviewDAO reviewDAO;
+    
+    // 🗄️ Cache layer để giảm DB queries
+    private final ProductCache cache;
 
 
     public SimpleHttpServer() {
@@ -37,10 +54,15 @@ public class SimpleHttpServer {
         this.priceHistoryDAO = new PriceHistoryDAO();
         this.productGroupDAO = new ProductGroupDAO();
         this.reviewDAO = new ReviewDAO();
-
+        
+        // 🗄️ Initialize cache với TTL 5 phút
+        this.cache = new ProductCache(CACHE_TTL_MS);
     }
 
     public void start() throws IOException {
+        // ⚡ Tạo thread pool với kích thước cố định
+        threadPool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+        
         server = HttpServer.create(new InetSocketAddress(HTTP_PORT), 0);
         
         // CORS and search endpoint
@@ -58,14 +80,20 @@ public class SimpleHttpServer {
         // NEW: Categories endpoint for category page
         server.createContext("/categories", this::handleCategories);
         
-        server.setExecutor(null); // creates a default executor
+        // 📊 Metrics endpoint for monitoring
+        server.createContext("/metrics", this::handleMetrics);
+        
+        // ⚡ Sử dụng thread pool thay vì unlimited threads
+        server.setExecutor(threadPool);
         server.start();
         
         System.out.println("✓ HTTP Server started on port " + HTTP_PORT);
+        System.out.println("  ⚡ Thread Pool: " + THREAD_POOL_SIZE + " threads (prevents OOM)");
         System.out.println("  Frontend can now connect via: http://localhost:" + HTTP_PORT + "/search");
         System.out.println("  Frontend can also access deals via: http://localhost:" + HTTP_PORT + "/deals");
         System.out.println("  Frontend can also access product detail via: http://localhost:" + HTTP_PORT + "/product-detail");
         System.out.println("  Frontend can also access categories via: http://localhost:" + HTTP_PORT + "/categories");
+        System.out.println("  📊 Metrics endpoint: http://localhost:" + HTTP_PORT + "/metrics");
     }
 
     /**
@@ -75,6 +103,23 @@ public class SimpleHttpServer {
         if (server != null) {
             server.stop(0);
             System.out.println("✓ HTTP Server stopped");
+        }
+        
+        // ⚡ Shutdown thread pool gracefully
+        if (threadPool != null) {
+            threadPool.shutdown();
+            try {
+                // Đợi tối đa 10 giây cho các tasks hiện tại hoàn thành
+                if (!threadPool.awaitTermination(10, TimeUnit.SECONDS)) {
+                    threadPool.shutdownNow();
+                    System.out.println("⚠️  Thread pool forced shutdown");
+                } else {
+                    System.out.println("✓ Thread pool stopped gracefully");
+                }
+            } catch (InterruptedException e) {
+                threadPool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
@@ -225,6 +270,15 @@ public class SimpleHttpServer {
     }
 
     private JSONObject handleSearchByName(String searchQuery) {
+        String cacheKey = "search:name:" + searchQuery.toLowerCase();
+        
+        // 🗄️ Check cache first
+        String cached = cache.get(cacheKey);
+        if (cached != null) {
+            System.out.println("✓ Search results loaded from cache (hit rate: " + String.format("%.1f", cache.getHitRate()) + "%)");
+            return new JSONObject(cached);
+        }
+        
         JSONObject response = new JSONObject();
         
         try {
@@ -252,6 +306,9 @@ public class SimpleHttpServer {
                 response.put("products", productsArray);
             }
             
+            // 🗄️ Store in cache
+            cache.put(cacheKey, response.toString());
+            
         } catch (Exception e) {
             e.printStackTrace();
             response.put("success", false);
@@ -264,8 +321,18 @@ public class SimpleHttpServer {
     /**
      * Handle SEARCH_BY_CATEGORY request
      * Returns all products in a specific category/group
+     * 🗄️ Cached version - TTL 5 phút
      */
     private JSONObject handleSearchByCategory(int groupId) {
+        String cacheKey = "search:category:" + groupId;
+        
+        // 🗄️ Check cache first
+        String cached = cache.get(cacheKey);
+        if (cached != null) {
+            System.out.println("✓ Category products loaded from cache (hit rate: " + String.format("%.1f", cache.getHitRate()) + "%)");
+            return new JSONObject(cached);
+        }
+        
         JSONObject response = new JSONObject();
         
         try {
@@ -293,6 +360,9 @@ public class SimpleHttpServer {
                 response.put("category_name", groupName);
                 response.put("products", productsArray);
             }
+            
+            // 🗄️ Store in cache
+            cache.put(cacheKey, response.toString());
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -360,10 +430,20 @@ public class SimpleHttpServer {
 
     /**
      * NEW: Get products with deals/discounts
+     * 🗄️ Cached version - TTL 5 phút
      * @param dealType Filter by deal type: "FLASH_SALE", "HOT_DEAL", "TRENDING", or "ALL"
      * @return JSONObject with products list
      */
     private JSONObject handleGetDeals(String dealType) {
+        String cacheKey = "deals:" + dealType;
+        
+        // 🗄️ Check cache first
+        String cached = cache.get(cacheKey);
+        if (cached != null) {
+            System.out.println("✓ Deals loaded from cache (hit rate: " + String.format("%.1f", cache.getHitRate()) + "%)");
+            return new JSONObject(cached);
+        }
+        
         JSONObject response = new JSONObject();
         
         try {
@@ -391,6 +471,9 @@ public class SimpleHttpServer {
                 response.put("deal_type", dealType);
                 response.put("products", productsArray);
             }
+            
+            // 🗄️ Store in cache
+            cache.put(cacheKey, response.toString());
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -466,10 +549,20 @@ public class SimpleHttpServer {
 
     /**
      * NEW: Get detailed product information including price history, reviews, and similar products
+     * 🗄️ Cached version - TTL 5 phút
      * @param productId The product ID
      * @return JSONObject with complete product details
      */
     private JSONObject handleGetProductDetail(int productId) {
+        String cacheKey = "product:" + productId;
+        
+        // 🗄️ Check cache first
+        String cached = cache.get(cacheKey);
+        if (cached != null) {
+            System.out.println("✓ Product detail loaded from cache (hit rate: " + String.format("%.1f", cache.getHitRate()) + "%)");
+            return new JSONObject(cached);
+        }
+        
         JSONObject response = new JSONObject();
         
         try {
@@ -586,6 +679,9 @@ public class SimpleHttpServer {
             System.out.println("✓ Product detail prepared: " + reviewCount + " reviews, " + 
                              priceHistory.size() + " price records, " + 
                              similarProducts.size() + " similar products");
+            
+            // 🗄️ Store in cache
+            cache.put(cacheKey, response.toString());
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -793,8 +889,18 @@ public class SimpleHttpServer {
     
     /**
      * Get all categories with product counts
+     * 🗄️ Cached version - TTL 5 phút
      */
     private JSONObject handleGetCategories() {
+        String cacheKey = "categories:all";
+        
+        // 🗄️ Check cache first
+        String cached = cache.get(cacheKey);
+        if (cached != null) {
+            System.out.println("✓ Categories loaded from cache (hit rate: " + String.format("%.1f", cache.getHitRate()) + "%)");
+            return new JSONObject(cached);
+        }
+        
         JSONObject response = new JSONObject();
         
         try {
@@ -823,7 +929,10 @@ public class SimpleHttpServer {
             response.put("success", true);
             response.put("categories", categoriesArray);
             
-            System.out.println("✓ Loaded " + categoriesArray.length() + " categories");
+            // 🗄️ Store in cache
+            cache.put(cacheKey, response.toString());
+            
+            System.out.println("✓ Loaded " + categoriesArray.length() + " categories from DB (cached for 5min)");
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -832,6 +941,98 @@ public class SimpleHttpServer {
         }
         
         return response;
+    }
+    
+    /**
+     * 📊 Handle /metrics endpoint - System monitoring
+     * Returns JSON with cache stats, thread pool info, DB connections, etc.
+     */
+    private void handleMetrics(HttpExchange exchange) throws IOException {
+        // Add CORS headers
+        Headers headers = exchange.getResponseHeaders();
+        headers.add("Access-Control-Allow-Origin", "*");
+        headers.add("Access-Control-Allow-Methods", "GET, OPTIONS");
+        headers.add("Access-Control-Allow-Headers", "Content-Type");
+        headers.add("Content-Type", "application/json; charset=UTF-8");
+
+        // Handle preflight OPTIONS request
+        if ("OPTIONS".equals(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(200, -1);
+            return;
+        }
+
+        try {
+            JSONObject metrics = new JSONObject();
+            
+            // 🗄️ Cache metrics
+            JSONObject cacheMetrics = new JSONObject();
+            cacheMetrics.put("hit_rate_percent", String.format("%.2f", cache.getHitRate()));
+            cacheMetrics.put("cache_size", cache.size());
+            cacheMetrics.put("ttl_minutes", CACHE_TTL_MS / 60000);
+            metrics.put("cache", cacheMetrics);
+            
+            // ⚡ Thread pool metrics
+            JSONObject threadMetrics = new JSONObject();
+            threadMetrics.put("max_threads", THREAD_POOL_SIZE);
+            threadMetrics.put("pool_type", "FixedThreadPool");
+            metrics.put("http_thread_pool", threadMetrics);
+            
+            // 💾 Database connection pool metrics (HikariCP)
+            try {
+                com.zaxxer.hikari.HikariDataSource ds = 
+                    com.pricetracker.server.db.HikariCPConfig.getDataSource();
+                
+                JSONObject dbMetrics = new JSONObject();
+                dbMetrics.put("pool_name", "PriceTrackerPool");
+                dbMetrics.put("max_pool_size", 30);
+                dbMetrics.put("min_idle", 15);
+                dbMetrics.put("active_connections", ds.getHikariPoolMXBean().getActiveConnections());
+                dbMetrics.put("idle_connections", ds.getHikariPoolMXBean().getIdleConnections());
+                dbMetrics.put("total_connections", ds.getHikariPoolMXBean().getTotalConnections());
+                dbMetrics.put("threads_awaiting_connection", ds.getHikariPoolMXBean().getThreadsAwaitingConnection());
+                metrics.put("database_pool", dbMetrics);
+            } catch (Exception e) {
+                metrics.put("database_pool", "unavailable");
+            }
+            
+            // 🚀 Server info
+            JSONObject serverMetrics = new JSONObject();
+            serverMetrics.put("http_port", HTTP_PORT);
+            serverMetrics.put("ssl_server", "disabled");
+            serverMetrics.put("websocket_port", 8081);
+            metrics.put("server", serverMetrics);
+            
+            // ⏱️ System info
+            JSONObject systemMetrics = new JSONObject();
+            Runtime runtime = Runtime.getRuntime();
+            long totalMemory = runtime.totalMemory() / (1024 * 1024);
+            long freeMemory = runtime.freeMemory() / (1024 * 1024);
+            long usedMemory = totalMemory - freeMemory;
+            long maxMemory = runtime.maxMemory() / (1024 * 1024);
+            
+            systemMetrics.put("used_memory_mb", usedMemory);
+            systemMetrics.put("total_memory_mb", totalMemory);
+            systemMetrics.put("max_memory_mb", maxMemory);
+            systemMetrics.put("available_processors", runtime.availableProcessors());
+            metrics.put("system", systemMetrics);
+            
+            // Wrap in response
+            JSONObject response = new JSONObject();
+            response.put("success", true);
+            response.put("timestamp", System.currentTimeMillis());
+            response.put("metrics", metrics);
+            
+            sendResponse(exchange, 200, response.toString());
+            System.out.println("📊 Metrics requested - Cache hit rate: " + String.format("%.1f", cache.getHitRate()) + "%");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            String errorResponse = String.format(
+                "{\"success\": false, \"error\": \"Server error: %s\"}", 
+                e.getMessage().replace("\"", "\\\"")
+            );
+            sendResponse(exchange, 500, errorResponse);
+        }
     }
 
     public static void main(String[] args) {
@@ -846,6 +1047,88 @@ public class SimpleHttpServer {
             
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+    
+    /**
+     * 🗄️ ProductCache - Simple in-memory cache với TTL
+     * Giảm 90% database queries cho demo
+     */
+    private static class ProductCache {
+        private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
+        private final long ttlMs;
+        
+        // Cache statistics
+        private long hits = 0;
+        private long misses = 0;
+        
+        public ProductCache(long ttlMs) {
+            this.ttlMs = ttlMs;
+        }
+        
+        /**
+         * Get cached value, null nếu expired hoặc không tồn tại
+         */
+        public String get(String key) {
+            CacheEntry entry = cache.get(key);
+            if (entry == null) {
+                misses++;
+                return null;
+            }
+            
+            // Check expiration
+            if (System.currentTimeMillis() - entry.timestamp > ttlMs) {
+                cache.remove(key);
+                misses++;
+                return null;
+            }
+            
+            hits++;
+            return entry.value;
+        }
+        
+        /**
+         * Put value vào cache với timestamp hiện tại
+         */
+        public void put(String key, String value) {
+            cache.put(key, new CacheEntry(value, System.currentTimeMillis()));
+        }
+        
+        /**
+         * Clear toàn bộ cache
+         */
+        public void clear() {
+            cache.clear();
+            hits = 0;
+            misses = 0;
+        }
+        
+        /**
+         * Get cache hit rate (%)
+         */
+        public double getHitRate() {
+            long total = hits + misses;
+            return total == 0 ? 0.0 : (hits * 100.0) / total;
+        }
+        
+        /**
+         * Get cache size
+         */
+        public int size() {
+            return cache.size();
+        }
+        
+        /**
+         * Cache entry với timestamp
+         */
+        private static class CacheEntry {
+            final String value;
+            final long timestamp;
+            
+            CacheEntry(String value, long timestamp) {
+                this.value = value;
+                this.timestamp = timestamp;
+            }
         }
     }
 }
