@@ -207,15 +207,16 @@ public class PriceTrackerServer {
     
     /**
      * Main method - Entry point của server
-     * Chạy 2 servers:
+     * Chạy 3 servers:
      * - SSL Server (8888) cho Java Client
      * - HTTP Server (8080) cho Frontend
+     * - WebSocket Server (8081) cho Real-time Updates
      */
     public static void main(String[] args) {
-        System.out.println("================================================");
-        System.out.println("   🚀 PRICE TRACKER - DUAL SERVER MODE");
-        System.out.println("   SSL/TLS + HikariCP Connection Pool");
-        System.out.println("================================================\n");
+        System.out.println("====================================================");
+        System.out.println("   🚀 PRICE TRACKER - TRIPLE SERVER MODE");
+        System.out.println("   SSL/TLS + HikariCP + WebSocket Real-time");
+        System.out.println("====================================================\n");
         
         // Khởi tạo DatabaseConnectionManager để init HikariCP pool
         try {
@@ -256,26 +257,50 @@ public class PriceTrackerServer {
             System.err.println("✗ Failed to start HTTP server: " + e.getMessage());
         }
         
+        // 3. Start WebSocket Server (port 8081) - For Real-time Updates
+        System.out.println("\n⚡ Starting WebSocket Server for Real-time Updates...");
+        com.pricetracker.server.websocket.PriceWebSocketServer wsServer = 
+            new com.pricetracker.server.websocket.PriceWebSocketServer();
+        wsServer.start();
+        
+        // 4. Start Price Update Service (monitors database)
+        System.out.println("📊 Starting Price Update Monitoring Service...");
+        com.pricetracker.server.websocket.PriceUpdateService updateService = 
+            new com.pricetracker.server.websocket.PriceUpdateService(wsServer);
+        updateService.start();
+        
         // Print summary
-        System.out.println("\n" + "=".repeat(60));
+        System.out.println("\n" + "=".repeat(65));
         System.out.println("   ✨ ALL SERVERS STARTED SUCCESSFULLY!");
-        System.out.println("=".repeat(60));
-        System.out.println("🔒 SSL Server:  port " + sslPort + " (Java Client connections)");
+        System.out.println("=".repeat(65));
+        System.out.println("🔒 SSL Server:       port " + sslPort + " (Java Client connections)");
         System.out.println("   └─ For Desktop Client with SSL/TLS encryption");
         System.out.println();
-        System.out.println("🌐 HTTP Server: port " + httpPort + " (Frontend API)");
+        System.out.println("🌐 HTTP Server:      port " + httpPort + " (Frontend API)");
         System.out.println("   ├─ /deals          - Get discount products");
         System.out.println("   ├─ /search         - Search products");
         System.out.println("   ├─ /product-detail - Product details");
         System.out.println("   └─ /categories     - Product categories");
-        System.out.println("=".repeat(60));
-        System.out.println("\nPress Ctrl+C to stop both servers...\n");
+        System.out.println();
+        System.out.println("⚡ WebSocket Server: port 8081 (Real-time price updates)");
+        System.out.println("   ├─ Broadcasts price changes to all connected clients");
+        System.out.println("   └─ Checks database every 30 seconds");
+        System.out.println("=".repeat(65));
+        System.out.println("\nPress Ctrl+C to stop all servers...\n");
         
         // Thêm shutdown hook để đóng servers gracefully
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("\n🛑 Shutdown signal received...");
             
-            // Stop HTTP server first
+            // Stop Price Update Service first
+            System.out.println("⏸️  Stopping Price Update Service...");
+            updateService.stop();
+            
+            // Stop WebSocket server
+            System.out.println("⏸️  Stopping WebSocket Server...");
+            wsServer.shutdown();
+            
+            // Stop HTTP server
             System.out.println("⏸️  Stopping HTTP Server...");
             httpServer.stop();
             
