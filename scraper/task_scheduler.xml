@@ -32,7 +32,7 @@
   <Principals>
     <Principal id="Author">
       <LogonType>InteractiveToken</LogonType>
-      <RunLevel>LeastPrivilege</RunLevel>
+      <RunLevel>HighestAvailable</RunLevel>
     </Principal>
   </Principals>
   
@@ -61,8 +61,8 @@
   <Actions Context="Author">
     <Exec>
       <Command>cmd.exe</Command>
-      <Arguments>/c "FULL_PATH_TO_SCRAPER\run_scraper.bat"</Arguments>
-      <WorkingDirectory>FULL_PATH_TO_SCRAPER</WorkingDirectory>
+      <Arguments>/c "d:\PROJECT_PRICE_TRACKER\scraper\run_scraper.bat"</Arguments>
+      <WorkingDirectory>d:\PROJECT_PRICE_TRACKER\scraper</WorkingDirectory>
     </Exec>
   </Actions>
 </Task>

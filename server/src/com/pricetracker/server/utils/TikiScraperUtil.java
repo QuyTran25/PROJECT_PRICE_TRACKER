@@ -108,6 +108,8 @@ public class TikiScraperUtil {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+            conn.setConnectTimeout(10000); // 10 seconds timeout
+            conn.setReadTimeout(10000);    // 10 seconds timeout
             
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
@@ -165,6 +167,8 @@ public class TikiScraperUtil {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+            conn.setConnectTimeout(10000); // 10 seconds timeout
+            conn.setReadTimeout(10000);    // 10 seconds timeout
             
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {

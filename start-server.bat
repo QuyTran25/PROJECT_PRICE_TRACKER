@@ -16,6 +16,7 @@ javac -encoding UTF-8 -d bin -cp "lib/*;../shared/src" ^
     src/com/pricetracker/server/db/*.java ^
     src/com/pricetracker/server/utils/*.java ^
     src/com/pricetracker/server/crypto/*.java ^
+    src/com/pricetracker/server/websocket/*.java ^
     src/com/pricetracker/server/core/*.java ^
     src/com/pricetracker/server/handler/*.java ^
     ../shared/src/com/pricetracker/models/*.java
