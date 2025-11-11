@@ -52,6 +52,9 @@ public class SimpleHttpServer {
         // NEW: Product detail endpoint
         server.createContext("/product-detail", this::handleProductDetail);
         
+        // NEW: Refresh price endpoint (Real-time scraping)
+        server.createContext("/refresh-price", this::handleRefreshPrice);
+        
         // NEW: Categories endpoint for category page
         server.createContext("/categories", this::handleCategories);
         
@@ -581,6 +584,124 @@ public class SimpleHttpServer {
         }
         
         return response;
+    }
+
+    /**
+     * NEW: Handle refresh price endpoint - Real-time scraping
+     * Forces an immediate price scrape if data is older than 1 hour
+     */
+    private void handleRefreshPrice(HttpExchange exchange) throws IOException {
+        // Add CORS headers
+        Headers headers = exchange.getResponseHeaders();
+        headers.add("Access-Control-Allow-Origin", "*");
+        headers.add("Access-Control-Allow-Methods", "POST, OPTIONS");
+        headers.add("Access-Control-Allow-Headers", "Content-Type");
+        headers.add("Content-Type", "application/json; charset=UTF-8");
+
+        // Handle preflight OPTIONS request
+        if ("OPTIONS".equals(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(200, -1);
+            return;
+        }
+
+        try {
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                String errorResponse = "{\"success\": false, \"error\": \"Method not allowed. Use POST.\"}";
+                sendResponse(exchange, 405, errorResponse);
+                return;
+            }
+            
+            // Read request body
+            InputStream is = exchange.getRequestBody();
+            String requestBody = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
+                    .lines()
+                    .reduce("", (acc, line) -> acc + line);
+
+            JSONObject requestJson = new JSONObject(requestBody);
+            if (!requestJson.has("product_id")) {
+                String errorResponse = "{\"success\": false, \"error\": \"Missing product_id\"}";
+                sendResponse(exchange, 400, errorResponse);
+                return;
+            }
+            
+            int productId = requestJson.getInt("product_id");
+            System.out.println("🔄 Refresh price request - Product ID: " + productId);
+
+            // Get product info
+            Product product = productDAO.getProductById(productId);
+            if (product == null) {
+                String errorResponse = "{\"success\": false, \"error\": \"Product not found\"}";
+                sendResponse(exchange, 404, errorResponse);
+                return;
+            }
+
+            // Get latest price from DB
+            PriceHistory latestPrice = priceHistoryDAO.getCurrentPrice(productId);
+            
+            // Check if need to scrape (> 1 hour old)
+            boolean needsScrape = false;
+            if (latestPrice != null) {
+                long hoursSinceUpdate = java.time.Duration.between(
+                    latestPrice.getCapturedAt().toLocalDateTime(),
+                    java.time.LocalDateTime.now()
+                ).toHours();
+                
+                needsScrape = (hoursSinceUpdate >= 1);
+                System.out.println("⏱️  Last update: " + hoursSinceUpdate + " hours ago");
+            } else {
+                needsScrape = true;
+                System.out.println("⚠️  No price history found");
+            }
+
+            if (needsScrape) {
+                System.out.println("🔍 Scraping new price from Tiki...");
+                
+                // Extract Tiki product ID
+                int tikiProductId = TikiScraperUtil.extractProductId(product.getUrl());
+                
+                if (tikiProductId != -1) {
+                    // Scrape price data
+                    Object[] priceData = TikiScraperUtil.scrapePriceData(product.getUrl());
+                    
+                    if (priceData != null && priceData.length >= 3) {
+                        double price = (Double) priceData[0];
+                        double originalPrice = (Double) priceData[1];
+                        String dealType = (String) priceData[2];
+                        
+                        // Save to database
+                        boolean saved = priceHistoryDAO.addCompletePriceRecord(
+                            productId, price, originalPrice, dealType
+                        );
+                        
+                        if (saved) {
+                            System.out.println("✅ New price saved: " + price + "đ");
+                        }
+                    }
+                }
+            } else {
+                System.out.println("✓ Price is still fresh, no scraping needed");
+            }
+
+            // Return latest price data
+            PriceHistory currentPrice = priceHistoryDAO.getCurrentPrice(productId);
+            JSONObject response = new JSONObject();
+            response.put("success", true);
+            response.put("price", currentPrice.getPrice());
+            response.put("original_price", currentPrice.getOriginalPrice());
+            response.put("deal_type", currentPrice.getDealType());
+            response.put("recorded_at", currentPrice.getCapturedAt().toString());
+            response.put("scraped_new", needsScrape);
+
+            sendResponse(exchange, 200, response.toString());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            String errorResponse = String.format(
+                "{\"success\": false, \"error\": \"Server error: %s\"}", 
+                e.getMessage().replace("\"", "\\\"")
+            );
+            sendResponse(exchange, 500, errorResponse);
+        }
     }
 
     private JSONObject buildProductJSON(Product product, PriceHistory priceHistory, String groupName) {

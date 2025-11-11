@@ -641,9 +641,145 @@ async function initializeProductDetail() {
     }
 }
 
+/**
+ * Show toast notification
+ */
+function showToast(message, type = 'success') {
+    // Remove existing toast if any
+    const existingToast = document.querySelector('.price-toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `price-toast ${type}`;
+    toast.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+        <span>${message}</span>
+    `;
+
+    // Add styles
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'};
+        color: white;
+        padding: 16px 24px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 15px;
+        font-weight: 500;
+        z-index: 10000;
+        animation: slideInRight 0.4s ease-out, fadeOut 0.4s ease-in 2.6s forwards;
+    `;
+
+    // Add animation keyframes if not exists
+    if (!document.getElementById('toast-animations')) {
+        const style = document.createElement('style');
+        style.id = 'toast-animations';
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            @keyframes fadeOut {
+                from {
+                    opacity: 1;
+                }
+                to {
+                    opacity: 0;
+                }
+            }
+            .price-toast i {
+                font-size: 20px;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(toast);
+
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+/**
+ * Refresh price data - Call backend to get latest price
+ */
+async function refreshPriceData() {
+    const productId = getProductIdFromURL();
+    if (!productId) return;
+
+    const btnRefresh = document.getElementById('btnRefreshPrice');
+    if (!btnRefresh) return;
+
+    try {
+        // Disable button and show loading
+        btnRefresh.disabled = true;
+        btnRefresh.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang cập nhật...';
+
+        console.log('🔄 Refreshing price for product:', productId);
+
+        // Call backend to refresh price display
+        const response = await fetch(`${API_BASE_URL}/refresh-price`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ product_id: productId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Refresh response:', data);
+
+        if (!data.success) {
+            throw new Error(data.error || 'Không thể cập nhật giá');
+        }
+
+        // Reload the entire product detail page
+        console.log('✅ Price refreshed, reloading page...');
+        await initializeProductDetail();
+
+        // Show success toast
+        showToast('Đã cập nhật giá mới nhất!', 'success');
+
+    } catch (error) {
+        console.error('❌ Failed to refresh price:', error);
+        showToast('Không thể cập nhật giá. Vui lòng thử lại!', 'error');
+    } finally {
+        // Re-enable button
+        btnRefresh.disabled = false;
+        btnRefresh.innerHTML = '<i class="fas fa-sync-alt"></i> Làm mới giá';
+    }
+}
+
 // Initialize product detail page on DOM ready
 document.addEventListener("DOMContentLoaded", () => {
     initializeProductDetail();
+
+    // Add event listener for refresh button
+    const btnRefresh = document.getElementById('btnRefreshPrice');
+    if (btnRefresh) {
+        btnRefresh.addEventListener('click', refreshPriceData);
+        console.log('✅ Refresh button event listener added');
+    }
 });
 
 console.log('✅ Trangchitiet.js loaded');

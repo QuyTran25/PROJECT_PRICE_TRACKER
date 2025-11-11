@@ -120,4 +120,35 @@ public class PriceHistoryDAO {
         
         return null;
     }
+    
+    /**
+     * Add complete price record with original_price and deal_type
+     * Used for real-time scraping
+     * @param productId Product ID
+     * @param price Current price
+     * @param originalPrice Original price (before discount)
+     * @param dealType Deal type (NORMAL, FLASH_SALE, HOT_DEAL, etc.)
+     * @return true if successful
+     */
+    public boolean addCompletePriceRecord(int productId, double price, double originalPrice, String dealType) {
+        String sql = "INSERT INTO price_history (product_id, price, original_price, currency, deal_type, recorded_at) " +
+                     "VALUES (?, ?, ?, 'VND', ?, NOW())";
+
+        try (Connection conn = DatabaseConnectionManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, productId);
+            stmt.setDouble(2, price);
+            stmt.setDouble(3, originalPrice);
+            stmt.setString(4, dealType);
+
+            int rows = stmt.executeUpdate();
+            return rows > 0;
+
+        } catch (SQLException e) {
+            System.err.println("❌ Lỗi khi thêm bản ghi giá đầy đủ: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

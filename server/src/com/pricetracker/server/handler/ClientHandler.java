@@ -5,6 +5,7 @@ import com.pricetracker.models.Product;
 import com.pricetracker.server.db.PriceHistoryDAO;
 import com.pricetracker.server.db.ProductDAO;
 import com.pricetracker.server.db.ProductGroupDAO;
+import com.pricetracker.server.utils.TikiScraperUtil;
 import com.pricetracker.security.AESUtil;
 import com.pricetracker.security.KeyManager;
 import org.json.JSONArray;
@@ -16,6 +17,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * ClientHandler - Xử lý yêu cầu từ một client cụ thể
@@ -26,8 +32,16 @@ import java.net.Socket;
  * 2. Xử lý yêu cầu (logic nghiệp vụ)
  * 3. Gửi phản hồi lại cho client
  * 4. Đóng kết nối và kết thúc thread
+ * 
+ * Updated: Added real-time scraping for product details
  */
 public class ClientHandler implements Runnable {
+    
+    // Thread Pool for background scraping (shared across all clients)
+    private static final ExecutorService scraperThreadPool = Executors.newFixedThreadPool(5);
+    
+    // Track last scrape time for each product (prevent duplicate scraping)
+    private static final ConcurrentHashMap<Integer, LocalDateTime> lastScrapeTime = new ConcurrentHashMap<>();
     
     private final Socket clientSocket;
     private final int clientId;
@@ -165,6 +179,20 @@ public class ClientHandler implements Runnable {
                 // TODO: Implement search logic
                 return "PRODUCTS|0|No implementation yet";
                 
+            case "VIEW_PRODUCT_DETAIL":
+                // Format: VIEW_PRODUCT_DETAIL|<product_id>
+                if (parts.length < 2) {
+                    return buildErrorResponse("Missing product_id parameter");
+                }
+                return handleViewProductDetail(parts[1]);
+                
+            case "REFRESH_PRICE_DISPLAY":
+                // Format: REFRESH_PRICE_DISPLAY|<product_id>
+                if (parts.length < 2) {
+                    return buildErrorResponse("Missing product_id parameter");
+                }
+                return handleRefreshPriceDisplay(parts[1]);
+                
             case "GET_PRODUCT_DETAILS":
                 // TODO: Implement get details logic
                 return "PRODUCT_DETAILS|No implementation yet";
@@ -246,6 +274,147 @@ public class ClientHandler implements Runnable {
             e.printStackTrace();
             return buildErrorResponse("Error processing name search: " + e.getMessage());
         }
+    }
+    
+    /**
+     * Handle VIEW_PRODUCT_DETAIL request
+     * 1. Return current price from DB immediately
+     * 2. Auto-scrape in background if price is older than 1 hour
+     */
+    private String handleViewProductDetail(String productIdStr) {
+        try {
+            int productId = Integer.parseInt(productIdStr);
+            
+            ProductDAO productDAO = new ProductDAO();
+            Product product = productDAO.getProductById(productId);
+            
+            if (product == null) {
+                return buildErrorResponse("Product not found");
+            }
+            
+            // STEP 1: Return current data immediately
+            String response = buildProductResponse(product, false);
+            
+            // STEP 2: Auto-scrape in background if needed
+            autoScrapeIfNeeded(productId, product.getUrl());
+            
+            return response;
+            
+        } catch (NumberFormatException e) {
+            return buildErrorResponse("Invalid product_id format");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return buildErrorResponse("Error viewing product detail: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Handle REFRESH_PRICE_DISPLAY request
+     * Just reload the latest price from DB (no scraping)
+     */
+    private String handleRefreshPriceDisplay(String productIdStr) {
+        try {
+            int productId = Integer.parseInt(productIdStr);
+            
+            PriceHistoryDAO priceDAO = new PriceHistoryDAO();
+            PriceHistory latestPrice = priceDAO.getCurrentPrice(productId);
+            
+            if (latestPrice == null) {
+                return buildErrorResponse("No price data found");
+            }
+            
+            // Build simple response with price and timestamp
+            JSONObject response = new JSONObject();
+            response.put("success", true);
+            response.put("price", latestPrice.getPrice());
+            response.put("original_price", latestPrice.getOriginalPrice());
+            response.put("deal_type", latestPrice.getDealType());
+            response.put("recorded_at", latestPrice.getCapturedAt().toString());
+            
+            return response.toString();
+            
+        } catch (NumberFormatException e) {
+            return buildErrorResponse("Invalid product_id format");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return buildErrorResponse("Error refreshing price: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Auto-scrape price in background if older than 1 hour
+     * Prevents duplicate scraping with ConcurrentHashMap
+     */
+    private void autoScrapeIfNeeded(int productId, String productUrl) {
+        scraperThreadPool.submit(() -> {
+            try {
+                // Get latest price from DB
+                PriceHistoryDAO priceDAO = new PriceHistoryDAO();
+                PriceHistory latestPrice = priceDAO.getCurrentPrice(productId);
+                
+                if (latestPrice == null) {
+                    System.out.println("⚠️  No price history for product " + productId + ", skipping auto-scrape");
+                    return;
+                }
+                
+                // Check if price is older than 1 hour
+                LocalDateTime recordedTime = latestPrice.getCapturedAt().toLocalDateTime();
+                LocalDateTime now = LocalDateTime.now();
+                long hoursSince = ChronoUnit.HOURS.between(recordedTime, now);
+                
+                if (hoursSince < 1) {
+                    System.out.println("⏱️  Product " + productId + " price is fresh (" + hoursSince + "h old), skip scraping");
+                    return;
+                }
+                
+                // Check if already scraping or recently scraped
+                LocalDateTime lastScrape = lastScrapeTime.get(productId);
+                if (lastScrape != null) {
+                    long secondsSinceLastScrape = ChronoUnit.SECONDS.between(lastScrape, now);
+                    if (secondsSinceLastScrape < 60) {
+                        System.out.println("🔄 Product " + productId + " is being scraped or just scraped, skip");
+                        return;
+                    }
+                }
+                
+                // Mark as scraping
+                lastScrapeTime.put(productId, now);
+                
+                System.out.println("🔍 Auto-scraping product " + productId + " (price is " + hoursSince + "h old)...");
+                
+                // Extract Tiki product ID from URL
+                int tikiProductId = TikiScraperUtil.extractProductId(productUrl);
+                if (tikiProductId == -1) {
+                    System.err.println("❌ Invalid Tiki URL for product " + productId);
+                    return;
+                }
+                
+                // Scrape price data from Tiki API
+                Object[] priceData = TikiScraperUtil.scrapePriceData(productUrl);
+                
+                if (priceData != null && priceData.length >= 3) {
+                    double price = (Double) priceData[0];
+                    double originalPrice = (Double) priceData[1];
+                    String dealType = (String) priceData[2];
+                    
+                    // Save complete price data to database
+                    boolean success = priceDAO.addCompletePriceRecord(productId, price, originalPrice, dealType);
+                    
+                    if (success) {
+                        System.out.println("✅ Auto-scraped product " + productId + ": " + 
+                                         String.format("%,.0f", price) + "đ (deal: " + dealType + ")");
+                    } else {
+                        System.err.println("❌ Failed to save auto-scraped price for product " + productId);
+                    }
+                } else {
+                    System.err.println("❌ Failed to scrape price for product " + productId);
+                }
+                
+            } catch (Exception e) {
+                System.err.println("❌ Error in auto-scrape for product " + productId + ": " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
     }
     
     /**
