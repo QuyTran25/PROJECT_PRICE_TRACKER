@@ -1,0 +1,45 @@
+# Database Configuration for HikariCP Connection Pool
+# Copy this file to 'config.ini' and update with your settings
+
+# === Database Connection ===
+db.url=jdbc:mysql://localhost:3306/price_insight
+db.user=root
+db.password=
+
+# === Connection Pool Settings ===
+# Maximum number of connections in pool
+# Recommended: (core_count * 2) + effective_spindle_count
+# For most apps: 10-20 is sufficient
+db.pool.maxSize=10
+
+# Minimum idle connections to maintain
+# Recommended: Same as maxSize for consistent performance
+# Or lower (e.g., maxSize/2) to save resources
+db.pool.minIdle=5
+
+# === Advanced Settings (Optional) ===
+# Enable debug logging for connections
+# db.debug=false
+
+# Connection timeout in milliseconds
+# db.pool.connectionTimeout=30000
+
+# Max lifetime of connection in milliseconds
+# db.pool.maxLifetime=1800000
+
+# Idle timeout in milliseconds
+# db.pool.idleTimeout=600000
+
+# === Example Configurations ===
+
+# --- Development (Low traffic) ---
+# db.pool.maxSize=5
+# db.pool.minIdle=2
+
+# --- Production (Medium traffic) ---
+# db.pool.maxSize=20
+# db.pool.minIdle=10
+
+# --- Production (High traffic) ---
+# db.pool.maxSize=50
+# db.pool.minIdle=25

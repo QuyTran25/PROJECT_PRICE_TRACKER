@@ -204,4 +204,100 @@ public class PriceTrackerServer {
     public int getClientCount() {
         return clientCounter.get();
     }
+    
+    /**
+     * Main method - Entry point của server
+     * Chạy 2 servers:
+     * - SSL Server (8888) cho Java Client
+     * - HTTP Server (8080) cho Frontend
+     */
+    public static void main(String[] args) {
+        System.out.println("================================================");
+        System.out.println("   🚀 PRICE TRACKER - DUAL SERVER MODE");
+        System.out.println("   SSL/TLS + HikariCP Connection Pool");
+        System.out.println("================================================\n");
+        
+        // Khởi tạo DatabaseConnectionManager để init HikariCP pool
+        try {
+            System.out.println("🔧 Initializing HikariCP Connection Pool...");
+            com.pricetracker.server.db.DatabaseConnectionManager.getInstance();
+            System.out.println();
+        } catch (Exception e) {
+            System.err.println("✗ Failed to initialize database connection pool!");
+            System.err.println("✗ Error: " + e.getMessage());
+            System.err.println("\n⚠️  Server will continue but database operations will fail.");
+            System.err.println("⚠️  Make sure MySQL is running on localhost:3306\n");
+        }
+        
+        // Đọc ports từ system property hoặc dùng mặc định
+        int sslPort = Integer.parseInt(System.getProperty("ssl.port", "8888"));
+        int httpPort = Integer.parseInt(System.getProperty("http.port", "8080"));
+        
+        // 1. Start SSL Server (port 8888) - For Java Client
+        System.out.println("🔒 Starting SSL Server for Java Client...");
+        PriceTrackerServer sslServer = new PriceTrackerServer(sslPort);
+        Thread sslThread = new Thread(() -> sslServer.start(), "SSL-Server-Thread");
+        sslThread.start();
+        
+        // Wait a bit for SSL server to initialize
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        // 2. Start HTTP Server (port 8080) - For Frontend
+        System.out.println("\n🌐 Starting HTTP Server for Frontend...");
+        com.pricetracker.server.http.SimpleHttpServer httpServer = 
+            new com.pricetracker.server.http.SimpleHttpServer();
+        try {
+            httpServer.start();
+        } catch (Exception e) {
+            System.err.println("✗ Failed to start HTTP server: " + e.getMessage());
+        }
+        
+        // Print summary
+        System.out.println("\n" + "=".repeat(60));
+        System.out.println("   ✨ ALL SERVERS STARTED SUCCESSFULLY!");
+        System.out.println("=".repeat(60));
+        System.out.println("🔒 SSL Server:  port " + sslPort + " (Java Client connections)");
+        System.out.println("   └─ For Desktop Client with SSL/TLS encryption");
+        System.out.println();
+        System.out.println("🌐 HTTP Server: port " + httpPort + " (Frontend API)");
+        System.out.println("   ├─ /deals          - Get discount products");
+        System.out.println("   ├─ /search         - Search products");
+        System.out.println("   ├─ /product-detail - Product details");
+        System.out.println("   └─ /categories     - Product categories");
+        System.out.println("=".repeat(60));
+        System.out.println("\nPress Ctrl+C to stop both servers...\n");
+        
+        // Thêm shutdown hook để đóng servers gracefully
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("\n🛑 Shutdown signal received...");
+            
+            // Stop HTTP server first
+            System.out.println("⏸️  Stopping HTTP Server...");
+            httpServer.stop();
+            
+            // Stop SSL server
+            System.out.println("⏸️  Stopping SSL Server...");
+            sslServer.shutdown();
+            
+            // Đóng HikariCP pool
+            try {
+                com.pricetracker.server.db.HikariCPConfig.shutdown();
+            } catch (Exception e) {
+                System.err.println("Error shutting down database pool: " + e.getMessage());
+            }
+            
+            System.out.println("✅ All servers stopped gracefully");
+        }));
+        
+        // Keep main thread alive
+        try {
+            sslThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
 }

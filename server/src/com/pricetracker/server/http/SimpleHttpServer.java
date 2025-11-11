@@ -68,6 +68,16 @@ public class SimpleHttpServer {
         System.out.println("  Frontend can also access categories via: http://localhost:" + HTTP_PORT + "/categories");
     }
 
+    /**
+     * Stop HTTP server gracefully
+     */
+    public void stop() {
+        if (server != null) {
+            server.stop(0);
+            System.out.println("✓ HTTP Server stopped");
+        }
+    }
+
     private void handleSearch(HttpExchange exchange) throws IOException {
         // Add CORS headers
         Headers headers = exchange.getResponseHeaders();
@@ -822,13 +832,6 @@ public class SimpleHttpServer {
         }
         
         return response;
-    }
-
-    public void stop() {
-        if (server != null) {
-            server.stop(0);
-            System.out.println("HTTP Server stopped");
-        }
     }
 
     public static void main(String[] args) {

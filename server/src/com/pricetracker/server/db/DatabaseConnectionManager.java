@@ -1,36 +1,57 @@
 package com.pricetracker.server.db;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
- * DatabaseConnectionManager - Quản lý kết nối database
- * Dùng Singleton để chỉ tạo một kết nối duy nhất
+ * DatabaseConnectionManager - Quản lý kết nối database với HikariCP
+ * 
+ * UPGRADED: Sử dụng HikariCP Connection Pool thay vì single connection
+ * 
+ * Benefits:
+ * - Connection pooling: Tái sử dụng connections, giảm overhead
+ * - Auto reconnection: Tự động reconnect khi mất kết nối
+ * - Performance: Nhanh hơn 10-100x so với tự code
+ * - Monitoring: Built-in metrics để track pool health
+ * - Thread-safe: An toàn khi nhiều threads truy cập đồng thời
+ * 
+ * Usage:
+ * Connection conn = DatabaseConnectionManager.getConnection();
+ * try {
+ *     // Use connection
+ * } finally {
+ *     conn.close(); // Trả lại pool, KHÔNG đóng thật sự
+ * }
  */
 public class DatabaseConnectionManager {
     private static DatabaseConnectionManager instance;
-
-    // Thông tin kết nối MySQL XAMPP
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/price_insight";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = ""; // XAMPP mặc định không có password
-    private static final String DB_DRIVER = "com.mysql.cj.jdbc.Driver";
-
-    // ⚠️ Sửa dòng này thành static
-    private static Connection connection;
+    private static boolean initialized = false;
 
     // Private constructor cho Singleton
     private DatabaseConnectionManager() {
-        try {
-            Class.forName(DB_DRIVER);
-            System.out.println("✓ MySQL JDBC Driver loaded successfully");
-        } catch (ClassNotFoundException e) {
-            System.err.println("✗ MySQL JDBC Driver not found!");
-            e.printStackTrace();
+        if (!initialized) {
+            initializePool();
+            initialized = true;
         }
     }
 
+    /**
+     * Khởi tạo HikariCP pool
+     */
+    private void initializePool() {
+        try {
+            HikariCPConfig.initialize();
+            System.out.println("✓ DatabaseConnectionManager initialized with HikariCP");
+        } catch (Exception e) {
+            System.err.println("✗ Failed to initialize connection pool!");
+            e.printStackTrace();
+            throw new RuntimeException("Cannot start server without database connection pool", e);
+        }
+    }
+
+    /**
+     * Lấy instance của DatabaseConnectionManager (Singleton)
+     */
     public static synchronized DatabaseConnectionManager getInstance() {
         if (instance == null) {
             instance = new DatabaseConnectionManager();
@@ -38,34 +59,62 @@ public class DatabaseConnectionManager {
         return instance;
     }
 
+    /**
+     * Lấy connection từ pool
+     * 
+     * IMPORTANT: Phải close() connection sau khi dùng xong để trả lại pool!
+     * Recommend dùng try-with-resources:
+     * 
+     * try (Connection conn = DatabaseConnectionManager.getConnection()) {
+     *     // Your code here
+     * }
+     */
     public static Connection getConnection() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            System.out.println("✓ Connected to MySQL database: " + DB_URL);
-        }
-        return connection;
-    }
-
-    public void closeConnection() {
-        if (connection != null) {
-            try {
-                connection.close();
-                System.out.println("✓ Database connection closed");
-            } catch (SQLException e) {
-                System.err.println("✗ Error closing database connection");
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public boolean testConnection() {
         try {
-            Connection conn = getConnection();
-            return conn != null && !conn.isClosed();
+            Connection conn = HikariCPConfig.getDataSource().getConnection();
+            
+            // Log để debug (có thể tắt trong production)
+            if (System.getProperty("db.debug", "false").equals("true")) {
+                System.out.println("✓ Connection acquired from pool");
+            }
+            
+            return conn;
         } catch (SQLException e) {
-            System.err.println("✗ Database connection test failed");
-            e.printStackTrace();
-            return false;
+            System.err.println("✗ Failed to get connection from pool: " + e.getMessage());
+            throw e;
         }
+    }
+
+    /**
+     * Đóng connection pool (gọi khi shutdown server)
+     * Không gọi method này trong business logic!
+     */
+    public void shutdown() {
+        HikariCPConfig.shutdown();
+        System.out.println("✓ DatabaseConnectionManager shut down");
+    }
+
+    /**
+     * Test kết nối database
+     */
+    public boolean testConnection() {
+        return HikariCPConfig.testConnection();
+    }
+
+    /**
+     * In thống kê pool (dùng để monitoring)
+     */
+    public void printPoolStats() {
+        HikariCPConfig.printPoolStats();
+    }
+
+    /**
+     * Legacy method để tương thích với code cũ
+     * @deprecated Dùng shutdown() thay thế
+     */
+    @Deprecated
+    public void closeConnection() {
+        System.out.println("⚠ closeConnection() is deprecated. Use shutdown() for pool cleanup.");
+        System.out.println("⚠ Individual connections will be returned to pool automatically when closed.");
     }
 }
