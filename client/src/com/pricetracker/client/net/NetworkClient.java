@@ -1,9 +1,11 @@
 package com.pricetracker.client.net;
 
+import com.pricetracker.client.crypto.SSLClientManager;
 import com.pricetracker.security.AESUtil;
 import com.pricetracker.security.KeyManager;
 
 import javax.crypto.SecretKey;
+import javax.net.ssl.SSLSocket;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -13,6 +15,8 @@ import java.net.Socket;
 /**
  * NetworkClient - Lớp xử lý kết nối và giao tiếp với Server
  * Chịu trách nhiệm gửi/nhận dữ liệu và mã hóa/giải mã thông tin
+ * 
+ * Hỗ trợ SSL/TLS cho secure communication
  */
 public class NetworkClient {
     private Socket socket;
@@ -23,21 +27,38 @@ public class NetworkClient {
     private String host;
     private int port;
     
+    // SSL Manager
+    private SSLClientManager sslManager;
+    
+    // Enable/Disable SSL (có thể config via system property)
+    private final boolean enableSSL;
+    
     /**
      * Constructor
      * @param host Địa chỉ server
      * @param port Cổng server
      */
     public NetworkClient(String host, int port) {
+        this(host, port, !"false".equals(System.getProperty("ssl.enabled", "true")));
+    }
+    
+    /**
+     * Constructor với SSL option
+     * @param host Địa chỉ server
+     * @param port Cổng server
+     * @param enableSSL Bật/tắt SSL
+     */
+    public NetworkClient(String host, int port, boolean enableSSL) {
         this.host = host;
         this.port = port;
+        this.enableSSL = enableSSL;
         
         // Load encryption key
         try {
             this.encryptionKey = KeyManager.getKey();
-            System.out.println("🔐 Encryption enabled");
+            System.out.println("🔐 AES Encryption enabled");
         } catch (Exception e) {
-            System.err.println("⚠️ Encryption disabled: " + e.getMessage());
+            System.err.println("⚠️ AES Encryption disabled: " + e.getMessage());
             this.encryptionKey = null;
         }
     }
@@ -45,8 +66,39 @@ public class NetworkClient {
     /**
      * Kết nối đến server
      */
-    public void connect() throws IOException {
-        socket = new Socket(host, port);
+    public void connect() throws Exception {
+        if (enableSSL) {
+            System.out.println("🔒 Connecting with SSL/TLS...");
+            try {
+                // Khởi tạo SSL Manager
+                sslManager = new SSLClientManager();
+                
+                // Tạo SSL Socket
+                socket = sslManager.getSocketFactory().createSocket(host, port);
+                
+                // Config SSL parameters
+                if (socket instanceof SSLSocket) {
+                    SSLSocket sslSocket = (SSLSocket) socket;
+                    SSLClientManager.configureSSLSocket(sslSocket);
+                    
+                    // Bắt đầu SSL handshake
+                    sslSocket.startHandshake();
+                    
+                    // Hiển thị thông tin SSL
+                    sslManager.printSSLInfo(sslSocket);
+                }
+                
+                System.out.println("✅ SSL/TLS connection established");
+            } catch (Exception e) {
+                System.err.println("✗ SSL connection failed: " + e.getMessage());
+                System.err.println("⚠️  Fallback to non-SSL connection...");
+                socket = new Socket(host, port);
+            }
+        } else {
+            System.out.println("⚠️  Connecting without SSL (not recommended)");
+            socket = new Socket(host, port);
+        }
+        
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         out = new PrintWriter(socket.getOutputStream(), true);
         System.out.println("✅ Connected to server: " + host + ":" + port);

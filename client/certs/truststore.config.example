@@ -1,0 +1,66 @@
+# ===========================================
+# Client SSL Truststore Configuration
+# ===========================================
+#
+# HƯỚNG DẪN SỬ DỤNG:
+# 1. Copy file này thành 'truststore.config'
+# 2. Đổi các giá trị bên dưới
+# 3. Chạy server/certs/export-cert-for-client.bat
+#
+# ===========================================
+
+# Truststore file name
+TRUSTSTORE_FILE=truststore.jks
+
+# Truststore password (ĐỔI TRONG PRODUCTION!)
+TRUSTSTORE_PASSWORD=pricetracker123
+
+# Server certificate alias
+SERVER_ALIAS=pricetracker
+
+# ===========================================
+# Development Settings
+# ===========================================
+
+# Trust all certificates (CHỈ DÙNG DEV!)
+# true = Không verify certificate (NGUY HIỂM)
+# false = Verify certificate (AN TOÀN)
+TRUST_ALL=false
+
+# ===========================================
+# Production Settings
+# ===========================================
+
+# Nếu server dùng certificate từ CA tin cậy:
+# - Let's Encrypt
+# - DigiCert
+# - Comodo
+# Thì KHÔNG CẦN custom truststore
+# Java sẽ tự động trust
+
+# Nếu server dùng self-signed certificate:
+# - PHẢI có truststore.jks
+# - PHẢI distribute cho tất cả clients
+# - Set TRUST_ALL=false
+
+# ===========================================
+# PRODUCTION CHECKLIST:
+# ===========================================
+# [ ] Đổi TRUSTSTORE_PASSWORD thành password mạnh
+# [ ] Set TRUST_ALL=false
+# [ ] Verify server certificate expires date
+# [ ] Test connection trước khi deploy
+# [ ] Distribute truststore cho all clients
+# [ ] Document server hostname/IP cho users
+# ===========================================
+
+# ===========================================
+# Usage trong code:
+# ===========================================
+# NetworkClient client = new NetworkClient("server.com", 8888);
+# 
+# Hoặc với system properties:
+# java -Dssl.truststore.path=client/certs/truststore.jks \
+#      -Dssl.truststore.password=YOUR_PASSWORD \
+#      -jar client.jar
+# ===========================================

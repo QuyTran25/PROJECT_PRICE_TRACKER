@@ -7,6 +7,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.net.ssl.SSLServerSocket;
+
+import com.pricetracker.server.crypto.SSLManager;
 import com.pricetracker.server.handler.ClientHandler;
 
 /**
@@ -33,14 +36,30 @@ public class PriceTrackerServer {
     // Đếm số lượng client đã kết nối
     private AtomicInteger clientCounter;
     
+    // SSL Manager
+    private SSLManager sslManager;
+    
+    // Enable/Disable SSL (có thể config via system property)
+    private final boolean enableSSL;
+    
     /**
      * Constructor
      * @param port Cổng mà server sẽ lắng nghe
      */
     public PriceTrackerServer(int port) {
+        this(port, !"false".equals(System.getProperty("ssl.enabled", "true")));
+    }
+    
+    /**
+     * Constructor với SSL option
+     * @param port Cổng mà server sẽ lắng nghe
+     * @param enableSSL Bật/tắt SSL
+     */
+    public PriceTrackerServer(int port, boolean enableSSL) {
         this.port = port;
         this.isRunning = false;
         this.clientCounter = new AtomicInteger(0);
+        this.enableSSL = enableSSL;
     }
     
     /**
@@ -49,8 +68,40 @@ public class PriceTrackerServer {
      */
     public void start() {
         try {
-            // Khởi tạo ServerSocket
-            serverSocket = new ServerSocket(port);
+            // Khởi tạo ServerSocket (SSL hoặc Plain)
+            if (enableSSL) {
+                System.out.println("🔒 Đang khởi tạo SSL/TLS Server...");
+                try {
+                    sslManager = new SSLManager();
+                    serverSocket = sslManager.getServerSocketFactory().createServerSocket(port);
+                    
+                    // Config SSL parameters
+                    if (serverSocket instanceof SSLServerSocket) {
+                        SSLServerSocket sslServerSocket = (SSLServerSocket) serverSocket;
+                        
+                        // Chỉ enable protocols mạnh
+                        sslServerSocket.setEnabledProtocols(new String[] {
+                            "TLSv1.3", "TLSv1.2"
+                        });
+                        
+                        // Optional: Yêu cầu client authentication
+                        // sslServerSocket.setNeedClientAuth(true);
+                        
+                        // Hiển thị SSL info
+                        sslManager.printSSLInfo(sslServerSocket);
+                    }
+                    
+                    System.out.println("✓ SSL/TLS đã được kích hoạt");
+                } catch (Exception e) {
+                    System.err.println("✗ Lỗi khởi tạo SSL: " + e.getMessage());
+                    System.err.println("⚠️  Fallback sang non-SSL mode...");
+                    serverSocket = new ServerSocket(port);
+                }
+            } else {
+                System.out.println("⚠️  Chạy ở NON-SSL mode (không khuyến khích cho production)");
+                serverSocket = new ServerSocket(port);
+            }
+            
             isRunning = true;
             
             // Khởi tạo thread pool để quản lý các ClientHandler
