@@ -67,7 +67,10 @@ async function fetchProductDetail(productId) {
         const response = await fetch(`${API_BASE_URL}/product-detail`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             },
             body: JSON.stringify({ product_id: productId })
         });
@@ -315,12 +318,20 @@ function populatePriceHistory(priceHistory, currency = 'VND') {
     const canvas = document.getElementById('priceChart');
     if (!canvas) return;
 
+    // Get context first
+    const ctx = canvas.getContext('2d');
+
     // Destroy existing chart if any
     if (canvas.chartInstance) {
+        console.log('Destroying existing chart...');
         canvas.chartInstance.destroy();
+        canvas.chartInstance = null;
     }
 
-    const ctx = canvas.getContext('2d');
+    // Clear canvas completely
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    console.log('Creating new chart with', sorted.length, 'data points');
     const chart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -435,6 +446,13 @@ function updatePriceStats(highestPrice, lowestPrice, avgPrice, discountPercent, 
 function updateLastUpdateTime(latestDate) {
     const updateTimeElement = document.querySelector('.update-time');
     if (!updateTimeElement) return;
+
+    // Ensure latestDate is a valid Date object
+    if (!(latestDate instanceof Date)) {
+        latestDate = new Date(latestDate);
+    }
+    
+    console.log('Updating time with date:', latestDate.toString());
 
     const now = new Date();
     const diffMs = now - latestDate;
@@ -734,10 +752,13 @@ async function refreshPriceData() {
         console.log('🔄 Refreshing price for product:', productId);
 
         // Call backend to refresh price display
-        const response = await fetch(`${API_BASE_URL}/refresh-price`, {
+        const response = await fetch(`${API_BASE_URL}/refresh-price?t=${Date.now()}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             },
             body: JSON.stringify({ product_id: productId })
         });
@@ -752,6 +773,9 @@ async function refreshPriceData() {
         if (!data.success) {
             throw new Error(data.error || 'Không thể cập nhật giá');
         }
+
+        // Wait a moment for database to commit
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Reload the entire product detail page
         console.log('✅ Price refreshed, reloading page...');

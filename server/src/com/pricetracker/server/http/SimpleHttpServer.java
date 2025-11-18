@@ -128,7 +128,7 @@ public class SimpleHttpServer {
         Headers headers = exchange.getResponseHeaders();
         headers.add("Access-Control-Allow-Origin", "*");
         headers.add("Access-Control-Allow-Methods", "POST, OPTIONS");
-        headers.add("Access-Control-Allow-Headers", "Content-Type");
+        headers.add("Access-Control-Allow-Headers", "Content-Type, Cache-Control, Pragma, Expires");
         headers.add("Content-Type", "application/json; charset=UTF-8");
 
         // Handle preflight OPTIONS request
@@ -382,7 +382,7 @@ public class SimpleHttpServer {
         Headers headers = exchange.getResponseHeaders();
         headers.add("Access-Control-Allow-Origin", "*");
         headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        headers.add("Access-Control-Allow-Headers", "Content-Type");
+        headers.add("Access-Control-Allow-Headers", "Content-Type, Cache-Control, Pragma, Expires");
         headers.add("Content-Type", "application/json; charset=UTF-8");
 
         // Handle preflight OPTIONS request
@@ -493,7 +493,7 @@ public class SimpleHttpServer {
         Headers headers = exchange.getResponseHeaders();
         headers.add("Access-Control-Allow-Origin", "*");
         headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        headers.add("Access-Control-Allow-Headers", "Content-Type");
+        headers.add("Access-Control-Allow-Headers", "Content-Type, Cache-Control, Pragma, Expires");
         headers.add("Content-Type", "application/json; charset=UTF-8");
 
         // Handle preflight OPTIONS request
@@ -701,7 +701,7 @@ public class SimpleHttpServer {
         Headers headers = exchange.getResponseHeaders();
         headers.add("Access-Control-Allow-Origin", "*");
         headers.add("Access-Control-Allow-Methods", "POST, OPTIONS");
-        headers.add("Access-Control-Allow-Headers", "Content-Type");
+        headers.add("Access-Control-Allow-Headers", "Content-Type, Cache-Control, Pragma, Expires");
         headers.add("Content-Type", "application/json; charset=UTF-8");
 
         // Handle preflight OPTIONS request
@@ -788,6 +788,11 @@ public class SimpleHttpServer {
                 System.out.println("✓ Price is still fresh, no scraping needed");
             }
 
+            // 🗑️ Invalidate cache for this product to force fresh data on next request
+            String cacheKey = "product:" + productId;
+            cache.invalidate(cacheKey);
+            System.out.println("🗑️  Cache invalidated for product: " + productId);
+
             // Return latest price data
             PriceHistory currentPrice = priceHistoryDAO.getCurrentPrice(productId);
             JSONObject response = new JSONObject();
@@ -859,7 +864,7 @@ public class SimpleHttpServer {
         Headers headers = exchange.getResponseHeaders();
         headers.add("Access-Control-Allow-Origin", "*");
         headers.add("Access-Control-Allow-Methods", "GET, OPTIONS");
-        headers.add("Access-Control-Allow-Headers", "Content-Type");
+        headers.add("Access-Control-Allow-Headers", "Content-Type, Cache-Control, Pragma, Expires");
         headers.add("Content-Type", "application/json; charset=UTF-8");
 
         // Handle preflight OPTIONS request
@@ -952,7 +957,7 @@ public class SimpleHttpServer {
         Headers headers = exchange.getResponseHeaders();
         headers.add("Access-Control-Allow-Origin", "*");
         headers.add("Access-Control-Allow-Methods", "GET, OPTIONS");
-        headers.add("Access-Control-Allow-Headers", "Content-Type");
+        headers.add("Access-Control-Allow-Headers", "Content-Type, Cache-Control, Pragma, Expires");
         headers.add("Content-Type", "application/json; charset=UTF-8");
 
         // Handle preflight OPTIONS request
@@ -1092,6 +1097,13 @@ public class SimpleHttpServer {
          */
         public void put(String key, String value) {
             cache.put(key, new CacheEntry(value, System.currentTimeMillis()));
+        }
+        
+        /**
+         * Invalidate a specific cache entry
+         */
+        public void invalidate(String key) {
+            cache.remove(key);
         }
         
         /**
