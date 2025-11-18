@@ -100,15 +100,16 @@ public class PriceUpdateService {
     private List<PriceUpdate> queryPriceUpdates() {
         List<PriceUpdate> updates = new ArrayList<>();
         
-        // Query: Lấy sản phẩm có updated_at mới hơn lastCheckTime
+        // Query: Lấy sản phẩm có recorded_at mới hơn lastCheckTime
+        // recorded_at là cột timestamp trong bảng price_history
         String sql = "SELECT p.product_id, p.name as product_name, p.image_url, " +
                      "       ph.price, ph.original_price, " +
                      "       ROUND(((ph.original_price - ph.price) / ph.original_price) * 100) as discount_percent, " +
-                     "       ph.updated_at " +
+                     "       ph.recorded_at " +
                      "FROM product p " +
                      "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
-                     "WHERE ph.updated_at > ? " +
-                     "ORDER BY ph.updated_at DESC " +
+                     "WHERE ph.recorded_at > ? " +
+                     "ORDER BY ph.recorded_at DESC " +
                      "LIMIT 50"; // Giới hạn 50 updates mỗi lần
         
         try (Connection conn = DatabaseConnectionManager.getConnection();
@@ -125,7 +126,7 @@ public class PriceUpdateService {
                     update.currentPrice = rs.getDouble("price");
                     update.originalPrice = rs.getDouble("original_price");
                     update.discountPercent = rs.getInt("discount_percent");
-                    update.updatedAt = rs.getTimestamp("updated_at");
+                    update.updatedAt = rs.getTimestamp("recorded_at");
                     
                     updates.add(update);
                 }
