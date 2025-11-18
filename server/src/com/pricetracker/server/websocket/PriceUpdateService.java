@@ -101,10 +101,11 @@ public class PriceUpdateService {
         List<PriceUpdate> updates = new ArrayList<>();
         
         // Query: Lấy sản phẩm có updated_at mới hơn lastCheckTime
-        String sql = "SELECT p.product_id, p.product_name, p.image_url, " +
-                     "       ph.price, ph.original_price, ph.discount_percent, " +
+        String sql = "SELECT p.product_id, p.name as product_name, p.image_url, " +
+                     "       ph.price, ph.original_price, " +
+                     "       ROUND(((ph.original_price - ph.price) / ph.original_price) * 100) as discount_percent, " +
                      "       ph.updated_at " +
-                     "FROM products p " +
+                     "FROM product p " +
                      "INNER JOIN price_history ph ON p.product_id = ph.product_id " +
                      "WHERE ph.updated_at > ? " +
                      "ORDER BY ph.updated_at DESC " +

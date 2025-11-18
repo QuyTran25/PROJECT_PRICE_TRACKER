@@ -120,42 +120,34 @@ public class ProductDAO {
     
     /**
      * Search products by name (LIKE search)
-     * Improved algorithm: First try exact phrase match, then word boundary match, finally fallback to substring
+     * Case-insensitive search using LOWER() function
      * @param keyword Search keyword
      * @return List of matching products
      */
     public List<Product> searchByNameLike(String keyword) {
         List<Product> results = new ArrayList<>();
         
-        // Use BINARY collation to distinguish between 'áo' and 'ao'
-        // Priority 1: Exact phrase match (case-insensitive but accent-sensitive)
-        // Priority 2: Word boundary match (space before/after or start/end of string)
-        // Priority 3: Substring match with BINARY (accent-sensitive)
+        System.out.println("🔍 Searching for keyword: " + keyword);
+        
+        // Use LOWER() for case-insensitive search
+        // This will match "Samsung", "samsung", "SAMSUNG" all the same
         String sql = "SELECT DISTINCT p.* FROM product p " +
                      "LEFT JOIN product_group pg ON p.group_id = pg.group_id " +
                      "WHERE " +
-                     // Exact match (highest priority)
-                     "p.name COLLATE utf8mb4_bin LIKE ? OR " +
-                     "p.name COLLATE utf8mb4_bin LIKE ? OR " +
-                     "p.name COLLATE utf8mb4_bin LIKE ? OR " +
-                     "p.name COLLATE utf8mb4_bin LIKE ? OR " +
-                     // Search in group name (exact and partial match)
-                     "pg.group_name COLLATE utf8mb4_bin LIKE ? OR " +
-                     "pg.group_name COLLATE utf8mb4_bin LIKE ? " +
+                     "LOWER(p.name) LIKE LOWER(?) OR " +
+                     "LOWER(p.brand) LIKE LOWER(?) OR " +
+                     "LOWER(pg.group_name) LIKE LOWER(?) " +
                      "LIMIT 50";
         
         try (Connection conn = DatabaseConnectionManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            // Product name patterns
-            stmt.setString(1, keyword);  // Exact match
-            stmt.setString(2, keyword + " %");  // Word at start
-            stmt.setString(3, "% " + keyword);  // Word at end
-            stmt.setString(4, "% " + keyword + " %");  // Word in middle
+            String pattern = "%" + keyword + "%";
+            System.out.println("📝 Search pattern: " + pattern);
             
-            // Group name patterns
-            stmt.setString(5, keyword);  // Exact group name match
-            stmt.setString(6, "%" + keyword + "%");  // Partial group name match
+            stmt.setString(1, pattern);  // Search in product name
+            stmt.setString(2, pattern);  // Search in brand
+            stmt.setString(3, pattern);  // Search in group name
             
             ResultSet rs = stmt.executeQuery();
             
@@ -163,8 +155,11 @@ public class ProductDAO {
                 results.add(mapResultSetToProduct(rs));
             }
             
+            System.out.println("✅ Found " + results.size() + " products");
+            
         } catch (SQLException e) {
             System.err.println("Error searching by name: " + e.getMessage());
+            e.printStackTrace();
         }
         
         return results;
