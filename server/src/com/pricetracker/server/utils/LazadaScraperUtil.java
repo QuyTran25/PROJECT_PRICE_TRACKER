@@ -294,6 +294,6 @@ public class LazadaScraperUtil {
             }
         }
         
-        return 9; // Default: Sản phẩm mới (group 9)
+        return 9; // Default to Sản phẩm mới
     }
 }
